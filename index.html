@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Friendsgiving</title>
+<meta name="description" content="Friendsgiving potluck, Friday Nov 27 at 6 PM. One rule for the night: no counting calories, and yes to every drink offered.">
+<meta property="og:title" content="Friendsgiving · Friday, Nov 27 at 6 PM">
+<meta property="og:description" content="One rule for the night: no counting calories, and yes to every drink offered. Sign up with the dish you're bringing.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nateshreddy.github.io/friendsgiving/">
+<meta name="theme-color" content="#FFC629">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Gabarito:wght@400;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<style>
+:root {
+  /* Layout: one phone column on a turmeric wall. Sign-painted hero + ticket, scrolling marquee, sticker chips, chunky form with a slot-machine alias, taped name-tag board. Sign-ups go to a Google Sheet through Apps Script. */
+  --wall: #FFC629;
+  --ink: #26102E;
+  --paper: #FFF8EC;
+  --pink: #FF3D8B;
+  --orange: #FF6B1A;
+  --teal: #11A69B;
+  --c-apps: #FF6B1A;
+  --c-mains: #FF3D8B;
+  --c-sides: #11A69B;
+  --c-bread: #2E9E48;
+  --c-desserts: #8B3DFF;
+  --c-drinks: #2F7CF6;
+  --c-supplies: #26102E;
+  --manila: #F2D193;
+  --stamp: #D62839;
+  --pop: 5px 5px 0 var(--ink);
+  --font-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-body: "Gabarito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-marker: "Permanent Marker", "Marker Felt", "Comic Sans MS", cursive;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; background: var(--wall); }
+body {
+  margin: 0;
+  overflow-x: clip;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.45;
+  background:
+    radial-gradient(rgba(38, 16, 46, 0.1) 1.6px, transparent 1.8px) 0 0 / 20px 20px,
+    var(--wall);
+}
+
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 26px 18px 70px;
+  display: grid;
+  gap: 52px;
+}
+
+h1, h2, h3 { text-wrap: balance; }
+h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.55rem, 6.4vw, 2rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.sub { margin: 0 0 18px; max-width: 46ch; font-size: 1.02rem; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; }
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.1rem, 15.5vw, 5.6rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.title span { display: block; -webkit-text-stroke: 2.5px var(--ink); text-shadow: 5px 5px 0 var(--ink); }
+.title .l1 { color: var(--pink); }
+.title .l2 { color: var(--paper); }
+
+.burst {
+  position: absolute;
+  top: -36px;
+  right: -10px;
+  z-index: 2;
+  width: 90px;
+  height: 90px;
+  background: var(--ink);
+  clip-path: polygon(50.0% 0.0%, 60.4% 11.4%, 75.0% 6.7%, 78.3% 21.7%, 93.3% 25.0%, 88.6% 39.6%, 100.0% 50.0%, 88.6% 60.4%, 93.3% 75.0%, 78.3% 78.3%, 75.0% 93.3%, 60.4% 88.6%, 50.0% 100.0%, 39.6% 88.6%, 25.0% 93.3%, 21.7% 78.3%, 6.7% 75.0%, 11.4% 60.4%, 0.0% 50.0%, 11.4% 39.6%, 6.7% 25.0%, 21.7% 21.7%, 25.0% 6.7%, 39.6% 11.4%);
+  transform: rotate(14deg);
+  display: grid;
+  place-items: center;
+}
+.burst > span {
+  width: 88%;
+  height: 88%;
+  background: var(--teal);
+  clip-path: inherit;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  color: var(--paper);
+  font-size: 0.74rem;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.tagline { margin: 18px 0 0; max-width: 34ch; font-size: 1.22rem; font-weight: 700; line-height: 1.3; }
+
+.ticket {
+  position: relative;
+  margin: 24px 4px 0 0;
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--pop);
+  transform: rotate(-1.4deg);
+}
+.stub {
+  background: var(--pink);
+  color: var(--paper);
+  border-right: 3px dashed var(--ink);
+  border-radius: 13px 0 0 13px;
+  padding: 14px 10px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 2px;
+}
+.stub .day { font-family: var(--font-display); font-size: 1.05rem; }
+.stub .date { font-family: var(--font-display); font-size: 1.7rem; line-height: 1; -webkit-text-stroke: 1px var(--ink); text-shadow: 2px 2px 0 var(--ink); }
+.stub .count {
+  margin-top: 8px;
+  padding: 3px 8px;
+  background: var(--wall);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ticket::before, .ticket::after {
+  content: "";
+  position: absolute;
+  left: 100px;
+  width: 20px;
+  height: 20px;
+  background: var(--wall);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+}
+.ticket::before { top: -12px; clip-path: inset(50% 0 0 0); }
+.ticket::after { bottom: -12px; clip-path: inset(0 0 50% 0); }
+.tdetails { margin: 0; padding: 14px 16px; display: grid; gap: 9px; }
+.tdetails dt { font-family: var(--font-display); font-size: 0.7rem; color: var(--pink); }
+.tdetails dd { margin: 0; font-weight: 700; line-height: 1.25; }
+.tdetails small { display: block; font-weight: 400; font-size: 0.88rem; }
+.tdetails a { color: var(--ink); font-weight: 700; text-decoration-color: var(--pink); text-decoration-thickness: 2px; text-underline-offset: 2px; }
+.tdetails a:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- marquee ---------- */
+.marquee {
+  width: 112%;
+  margin: 6px 0 0 -6%;
+  background: var(--ink);
+  color: var(--wall);
+  transform: rotate(-2.5deg);
+  border-top: 3px solid var(--pink);
+  border-bottom: 3px solid var(--pink);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.track { display: flex; width: max-content; animation: marq 26s linear infinite; }
+.track span { font-family: var(--font-display); font-size: 1.05rem; padding: 10px 0; }
+@keyframes marq { to { transform: translateX(-50%); } }
+
+/* ---------- what's covered ---------- */
+.sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-bottom: 14px; }
+.sec-head h2 { margin: 0; }
+.stats {
+  margin: 0;
+  padding: 5px 12px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.stats:empty { display: none; }
+/* ---------- form ---------- */
+.card {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: 7px 7px 0 var(--ink);
+  padding: 22px 18px;
+}
+fieldset.wrapper { margin: 0; padding: 0; border: 0; min-width: 0; }
+.field { margin: 0 0 22px; padding: 0; border: 0; min-width: 0; }
+.field > label, .field > legend {
+  display: block;
+  margin: 0 0 9px;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  text-transform: uppercase;
+}
+input[type="text"] {
+  width: 100%;
+  font: inherit;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+input[type="text"]::placeholder { color: rgba(38, 16, 46, 0.42); font-weight: 400; }
+input[type="text"]:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+input[type="text"]:disabled { opacity: 0.5; }
+.help { margin: 7px 0 0; font-size: 0.92rem; }
+
+.pills { display: flex; flex-wrap: wrap; gap: 9px; }
+.pill { position: relative; display: inline-flex; }
+.pill input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.pill span {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.15s;
+}
+.pill input:checked + span { background: var(--c, var(--teal)); color: #fff; }
+.pill input:active + span { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+.pill input:focus-visible + span { outline: 3px solid var(--pink); outline-offset: 2px; }
+.pill input:disabled + span { opacity: 0.45; cursor: not-allowed; }
+
+.slot {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 18px 16px 16px;
+  background: var(--ink);
+  border: 5px dotted var(--wall);
+  border-radius: 20px;
+}
+.nametag {
+  width: 100%;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.nametag .band { background: var(--c, var(--pink)); color: #fff; text-align: center; padding: 7px 8px 6px; line-height: 1; border-bottom: 2.5px solid var(--ink); }
+.nametag .hello { display: block; font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.06em; }
+.nametag .mni { display: block; margin-top: 3px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; }
+.nametag .alias {
+  font-family: var(--font-marker);
+  font-size: 1.35rem;
+  line-height: 1.15;
+  text-align: center;
+  padding: 12px 10px 14px;
+  overflow-wrap: anywhere;
+}
+.slot .nametag { max-width: 340px; }
+.slot .nametag .alias { font-size: clamp(1.5rem, 7vw, 1.9rem); min-height: 2.6em; display: grid; place-items: center; }
+.nametag.spinning .alias { animation: jitter 0.09s steps(2) infinite; color: rgba(38, 16, 46, 0.7); }
+.nametag.pop { animation: pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes jitter { 0% { transform: translateY(-3px); } 100% { transform: translateY(3px); } }
+@keyframes pop { 0% { transform: scale(0.9) rotate(-2deg); } 60% { transform: scale(1.06) rotate(1deg); } 100% { transform: scale(1) rotate(0); } }
+
+.btn {
+  font: inherit;
+  font-weight: 800;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 11px 20px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.spin-btn {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  padding: 10px 30px;
+  background: var(--orange);
+  color: #fff;
+  box-shadow: 4px 4px 0 var(--wall);
+  border-color: var(--wall);
+}
+.spin-btn:active:not(:disabled) { box-shadow: 1px 1px 0 var(--wall); }
+.slot-help { margin: 0; color: var(--paper); font-size: 0.9rem; text-align: center; }
+.primary {
+  width: 100%;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  padding: 15px 20px;
+  background: var(--pink);
+  color: #fff;
+}
+.ghost { background: #fff; color: var(--ink); }
+.danger { background: #fff; color: var(--stamp); }
+.small { padding: 7px 14px; font-size: 0.9rem; box-shadow: 3px 3px 0 var(--ink); }
+.actions { display: grid; gap: 12px; justify-items: start; }
+
+.status {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-left-width: 10px;
+  border-left-color: var(--teal);
+  border-radius: 12px;
+  font-weight: 700;
+}
+.status:empty { display: none; }
+.status.warn { border-left-color: var(--pink); }
+
+/* ---------- board ---------- */
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 30px 16px; padding-top: 12px; }
+.sticker {
+  position: relative;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: rotate(var(--r, 0deg));
+}
+.sticker::before {
+  content: "";
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 66px;
+  height: 22px;
+  margin-left: -33px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(38, 16, 46, 0.14);
+  transform: rotate(-4deg);
+  z-index: 1;
+}
+.sticker .nametag { border: 0; border-radius: 12px 12px 0 0; }
+.sticker .bring { padding: 10px 12px 12px; border-top: 2.5px dashed var(--ink); display: grid; gap: 7px; }
+.sticker .lbl { font-family: var(--font-display); font-size: 0.62rem; color: var(--c); }
+.sticker .dish { margin: -4px 0 0; font-weight: 800; font-size: 1.02rem; line-height: 1.2; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }
+.chip {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+}
+.chip.you { background: var(--ink); color: var(--wall); }
+.chip.nonveg { background: #FFE1EC; }
+.empty-board {
+  padding: 26px 20px;
+  background: rgba(255, 248, 236, 0.6);
+  border: 3px dashed var(--ink);
+  border-radius: 18px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+footer { text-align: center; display: grid; gap: 4px; }
+footer .big { font-family: var(--font-display); font-size: 1.1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .track { animation: none; }
+  .nametag.spinning .alias, .nametag.pop { animation: none; }
+  .btn, .pill span { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <h1 class="title"><span class="l1">Friends</span><span class="l2">giving</span></h1>
+    <p class="tagline">One rule for the night: no counting calories, and yes to every drink offered.</p>
+    <div class="ticket">
+      <div class="burst" aria-hidden="true"><span>POT<br>LUCK!</span></div>
+      <div class="stub">
+        <span class="day">FRI</span>
+        <span class="date">NOV 27</span>
+        <span class="count" id="countdown"></span>
+      </div>
+      <dl class="tdetails">
+        <div><dt>Time</dt><dd>6:00 PM</dd></div>
+        <div><dt>Where</dt><dd id="where">Sent when you sign up<small>Add your dish below to see it</small></dd></div>
+        <div><dt>Bring</dt><dd>One dish and a big appetite</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="track">
+      <span>&nbsp;BRING A DISH &#9733; EAT TOO MUCH &#9733; STAY LATE &#9733; GOOD FOOD &#9733; GOOD FRIENDS &#9733;</span>
+      <span>&nbsp;BRING A DISH &#9733; EAT TOO MUCH &#9733; STAY LATE &#9733; GOOD FOOD &#9733; GOOD FRIENDS &#9733;</span>
+    </div>
+  </div>
+
+  <section id="signup" aria-labelledby="form-h">
+    <h2 id="form-h">Add your dish</h2>
+    <p id="form-intro" class="sub">Pick what you're bringing and spin for a secret alias. The board only shows aliases, so keep yours quiet.</p>
+    <div id="form-status" class="status" role="status" aria-live="polite"></div>
+    <form id="dish-form" class="card" novalidate>
+      <fieldset id="form-fs" class="wrapper">
+        <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+        <div class="field">
+          <label id="name-label" for="f-name">Your real name</label>
+          <input type="text" id="f-name" autocomplete="name" maxlength="40">
+          <p id="name-help" class="help">Only Natesh sees this.</p>
+        </div>
+        <div class="field">
+          <label for="f-dish">What are you bringing?</label>
+          <input type="text" id="f-dish" maxlength="60" placeholder="Aloo gobi, garlic naan, a bag of ice">
+        </div>
+        <fieldset class="field">
+          <legend>Category</legend>
+          <div class="pills" id="f-cats">
+            <label class="pill" style="--c:var(--c-apps)"><input type="radio" name="cat" id="cat-apps" value="apps"><span>Appetizers</span></label>
+            <label class="pill" style="--c:var(--c-mains)"><input type="radio" name="cat" id="cat-mains" value="mains"><span>Mains</span></label>
+            <label class="pill" style="--c:var(--c-sides)"><input type="radio" name="cat" id="cat-sides" value="sides"><span>Sides</span></label>
+            <label class="pill" style="--c:var(--c-bread)"><input type="radio" name="cat" id="cat-bread" value="bread"><span>Bread &amp; rice</span></label>
+            <label class="pill" style="--c:var(--c-desserts)"><input type="radio" name="cat" id="cat-desserts" value="desserts"><span>Desserts</span></label>
+            <label class="pill" style="--c:var(--c-drinks)"><input type="radio" name="cat" id="cat-drinks" value="drinks"><span>Drinks &amp; ice</span></label>
+            <label class="pill" style="--c:var(--c-supplies)"><input type="radio" name="cat" id="cat-supplies" value="supplies"><span>Supplies</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Good to know</legend>
+          <div class="pills">
+            <label class="pill"><input type="checkbox" id="tag-veg" value="veg" checked><span>Vegetarian</span></label>
+            <label class="pill"><input type="checkbox" id="tag-eggless" value="eggless"><span>Eggless</span></label>
+            <label class="pill"><input type="checkbox" id="tag-vegan" value="vegan"><span>Vegan</span></label>
+            <label class="pill"><input type="checkbox" id="tag-nuts" value="nuts"><span>Has nuts</span></label>
+            <label class="pill"><input type="checkbox" id="tag-spicy" value="spicy"><span>Spicy</span></label>
+            <label class="pill"><input type="checkbox" id="f-reheat"><span>Needs the oven</span></label>
+            <label class="pill"><input type="checkbox" id="f-fridge"><span>Needs fridge space</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>How many of you?</legend>
+          <div class="pills">
+            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-1" value="1" checked><span>Just me</span></label>
+            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-2" value="2"><span>Me + 1</span></label>
+            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-3" value="3"><span>Me + 2</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Your secret alias</legend>
+          <div class="slot">
+            <div class="nametag" id="alias-tag">
+              <div class="band" aria-hidden="true"><span class="hello">HELLO</span><span class="mni">my name is</span></div>
+              <div class="alias" id="alias-text" aria-live="polite"></div>
+            </div>
+            <button type="button" id="spin" class="btn spin-btn">Spin</button>
+            <p class="slot-help">Made from your dish. Spin until it feels right.</p>
+          </div>
+        </fieldset>
+        <div class="actions">
+          <button type="submit" id="save" class="btn primary">Put me on the board</button>
+          <button type="button" id="remove" class="btn danger small" hidden>Remove my dish</button>
+        </div>
+      </fieldset>
+    </form>
+  </section>
+
+  <section aria-labelledby="board-h">
+    <div class="sec-head">
+      <h2 id="board-h">The potluck board</h2>
+      <p id="stats" class="stats"></p>
+    </div>
+    <p class="sub">Who's bringing what. Real names stay secret until dinner.</p>
+    <div id="board-status" class="status" role="status" aria-live="polite"></div>
+    <div id="board"></div>
+  </section>
+
+  <footer>
+    <span class="big">See you Friday</span>
+    <span>Questions? Text Natesh.</span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // Google Apps Script web app URL for the "Friendsgiving signups" sheet (ends in /exec).
+  const API = "https://script.google.com/macros/s/AKfycby67gpNo35I3Zhw4eUJl6agWylTTV5tAUZow0WvZ3ZP5y-TQF2FLEQdPD75uNnfOzUP/exec";
+  const LS_KEY = "friendsgiving-2026-signup";
+
+  const CATS = [
+    { id: "apps", label: "Appetizers" },
+    { id: "mains", label: "Mains" },
+    { id: "sides", label: "Sides" },
+    { id: "bread", label: "Bread & rice" },
+    { id: "desserts", label: "Desserts" },
+    { id: "drinks", label: "Drinks & ice" },
+    { id: "supplies", label: "Supplies" }
+  ];
+  const CAT_IDS = CATS.map(c => c.id);
+  const CAT_LABEL = Object.fromEntries(CATS.map(c => [c.id, c.label]));
+  const TAGS = { veg: "Vegetarian", eggless: "Eggless", vegan: "Vegan", nuts: "Has nuts", spicy: "Spicy" };
+  const TAG_IDS = Object.keys(TAGS);
+  const PARTY_DAY = new Date(2026, 10, 27);
+  const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const STOP = new Set(("and with the a an of in on my our homemade home made style some fresh mini extra plus or for from to " +
+    "de la ka ki ke mom moms maa amma nani dadi special famous classic easy quick best bag bags box tray big small pcs piece pieces").split(" "));
+  const FALLBACK = {
+    apps: ["Pakora", "Chaat", "Nibbles"],
+    mains: ["Curry", "Feast", "Paneer"],
+    sides: ["Sabzi", "Tadka", "Sidekick"],
+    bread: ["Naan", "Roti", "Pulao"],
+    desserts: ["Halwa", "Jalebi", "Sugar"],
+    drinks: ["Chai", "Fizz", "Ice"],
+    supplies: ["Napkin", "Foil", "Cups"],
+    none: ["Mystery", "Snack", "Feast"]
+  };
+  const TEMPLATES = [
+    w => `Captain ${w}`, w => `Agent ${w}`, w => `DJ ${w}`, w => `Dr. ${w}`, w => `Professor ${w}`,
+    w => `MC ${w}`, w => `Lil' ${w}`, w => `Big ${w} Energy`, w => `The ${w} Bandit`, w => `The ${w} Whisperer`,
+    w => `The Notorious ${w}`, w => `${w} Supreme`, w => `${w}zilla`, w => `Sir ${w}-a-lot`, w => `Baron von ${w}`,
+    w => `Duke of ${w}`, w => `Chief ${w} Officer`, w => `Undercover ${w}`, w => `${w} Maharaja`, w => `Rani of ${w}`,
+    w => `Nawab of ${w}`, w => `The Great ${w}`, w => `${w} Ninja`, w => `${w} Tycoon`, w => `Chef ${w}`,
+    w => `${w} Bhai`, w => `Count ${w}`, w => `Mystery ${w}`, w => `${w} Overlord`, w => `Secret ${w} Society`
+  ];
+
+  const S = {
+    dishes: [], boardLoaded: false, readOnly: false, mine: null, prefilled: false,
+    local: loadLocal(), gen: 0, writeGen: 0,
+    alias: "", aliasTouched: false, spinning: false,
+    saving: false, removeArmed: false
+  };
+
+  const $ = id => document.getElementById(id);
+  const form = $("dish-form");
+
+  function h(tag, props, ...kids) {
+    const el = document.createElement(tag);
+    if (props) for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === "class") el.className = v;
+      else if (k === "text") el.textContent = v;
+      else if (k === "style") el.setAttribute("style", v);
+      else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? "" : v);
+    }
+    for (const kid of kids.flat()) {
+      if (kid == null || kid === false) continue;
+      el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+    }
+    return el;
+  }
+  function setStatus(el, text, tone) {
+    el.textContent = text || "";
+    el.className = "status" + (tone ? " " + tone : "");
+  }
+
+  // ---------- this device's sign-up ----------
+  function loadLocal() {
+    try { const v = JSON.parse(localStorage.getItem(LS_KEY)); return v && typeof v === "object" ? v : {}; }
+    catch (e) { return {}; }
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(S.local)); } catch (e) { /* private mode */ }
+  }
+  function forgetEntry() {
+    S.local = { address: S.local.address, realName: S.local.realName };
+    saveLocal();
+    S.mine = null;
+  }
+
+  // ---------- address ----------
+  function showAddress(addr) {
+    if (typeof addr !== "string" || !addr) return;
+    const first = addr.split(", San Francisco")[0];
+    $("where").replaceChildren(
+      document.createTextNode(first),
+      h("small", null, "San Francisco · ",
+        h("a", { href: "https://maps.google.com/?q=" + encodeURIComponent(addr), target: "_blank", rel: "noopener", text: "Open in Maps" })));
+  }
+
+  // ---------- countdown ----------
+  function countdownText() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d = Math.round((PARTY_DAY - today) / 86400000);
+    if (d > 1) return `${d} sleeps to go`;
+    if (d === 1) return "Tomorrow!";
+    if (d === 0) return "Tonight!";
+    return "Thanks for coming";
+  }
+
+  // ---------- data hygiene ----------
+  function str(v, max) { return typeof v === "string" ? v.trim().slice(0, max) : ""; }
+  function normalize(id, d) {
+    d = d || {};
+    const party = Number(d.party);
+    return {
+      id,
+      alias: str(d.alias, 40) || "Mystery Guest",
+      dish: str(d.dish, 80) || "Something tasty",
+      category: CAT_IDS.includes(d.category) ? d.category : "sides",
+      tags: Array.isArray(d.tags) ? d.tags.filter(t => TAG_IDS.includes(t)) : [],
+      reheat: d.reheat === true,
+      fridge: d.fridge === true,
+      party: Number.isFinite(party) && party >= 1 && party <= 4 ? Math.round(party) : 1,
+      createdAt: str(d.createdAt, 40)
+    };
+  }
+  function tilt(id) {
+    let x = 0;
+    for (let i = 0; i < id.length; i++) x = (x * 31 + id.charCodeAt(i)) >>> 0;
+    return ((x % 70) / 10 - 3.5).toFixed(1) + "deg";
+  }
+
+  // ---------- aliases ----------
+  function cap(w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }
+  function dishWords() {
+    const words = $("f-dish").value.replace(/['’]/g, "").split(/[^A-Za-zÀ-ɏ]+/)
+      .filter(w => w.length >= 3 && !STOP.has(w.toLowerCase())).map(cap);
+    const uniq = [...new Set(words)];
+    return uniq.length ? uniq : FALLBACK[selectedCat() || "none"];
+  }
+  function takenAliases() {
+    const mineId = S.local.id || null;
+    return new Set(S.dishes.filter(d => d.id !== mineId).map(d => d.alias.toLowerCase()));
+  }
+  function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function anyAlias(words) { return rand(TEMPLATES)(rand(words)); }
+  function pickAlias(avoid) {
+    const words = dishWords();
+    const taken = takenAliases();
+    for (let i = 0; i < 300; i++) {
+      const a = anyAlias(words);
+      if (a.length > 30 || a === avoid || taken.has(a.toLowerCase())) continue;
+      return a;
+    }
+    return anyAlias(words);
+  }
+  function setAlias(a, pop) {
+    S.alias = a;
+    $("alias-text").textContent = a;
+    const tag = $("alias-tag");
+    if (pop && !REDUCED) { tag.classList.remove("pop"); void tag.offsetWidth; tag.classList.add("pop"); }
+  }
+  function spin() {
+    if (S.spinning || S.readOnly) return;
+    S.aliasTouched = true;
+    const final = pickAlias(S.alias);
+    if (REDUCED) { setAlias(final, false); return; }
+    S.spinning = true;
+    $("spin").disabled = true;
+    const tag = $("alias-tag");
+    tag.classList.remove("pop");
+    tag.classList.add("spinning");
+    const words = dishWords();
+    const delays = [40, 40, 45, 50, 55, 65, 75, 90, 110, 135, 165, 200];
+    let i = 0;
+    const tick = () => {
+      if (i < delays.length) {
+        $("alias-text").textContent = anyAlias(words);
+        setTimeout(tick, delays[i++]);
+        return;
+      }
+      tag.classList.remove("spinning");
+      setAlias(final, true);
+      S.spinning = false;
+      $("spin").disabled = S.readOnly;
+    };
+    tick();
+  }
+  function paintAliasColor() {
+    const c = selectedCat();
+    $("alias-tag").style.setProperty("--c", c ? `var(--c-${c})` : "var(--pink)");
+  }
+
+  // ---------- form ----------
+  function selectedCat() {
+    const r = form.querySelector('input[name="cat"]:checked');
+    return r ? r.value : "";
+  }
+  function readForm() {
+    const party = form.querySelector('input[name="party"]:checked');
+    return {
+      realName: $("f-name").value.trim().slice(0, 40),
+      dish: $("f-dish").value.trim().slice(0, 60),
+      category: selectedCat(),
+      tags: TAG_IDS.filter(t => $("tag-" + t).checked),
+      reheat: $("f-reheat").checked,
+      fridge: $("f-fridge").checked,
+      party: party ? Number(party.value) : 1
+    };
+  }
+  function fillForm(e) {
+    $("f-dish").value = e.dish;
+    const c = $("cat-" + e.category); if (c) c.checked = true;
+    TAG_IDS.forEach(t => { $("tag-" + t).checked = e.tags.includes(t); });
+    $("f-reheat").checked = e.reheat;
+    $("f-fridge").checked = e.fridge;
+    const p = $("party-" + Math.min(e.party, 3)); if (p) p.checked = true;
+    S.aliasTouched = true;
+    setAlias(e.alias, false);
+    paintAliasColor();
+  }
+  function resetForm() {
+    const keepName = $("f-name").value;
+    form.reset();
+    $("f-name").value = keepName;
+    $("tag-veg").checked = true;
+    $("party-1").checked = true;
+    S.aliasTouched = false;
+    setAlias(pickAlias(), false);
+    paintAliasColor();
+  }
+  function setReadOnly(msg) {
+    S.readOnly = true;
+    $("form-fs").disabled = true;
+    setStatus($("form-status"), msg, "warn");
+  }
+  function renderFormMode() {
+    const editing = !!S.mine;
+    $("form-h").textContent = editing ? "Your dish" : "Add your dish";
+    $("save").textContent = S.saving ? "Saving..." : (editing ? "Save changes" : "Put me on the board");
+    $("save").disabled = S.saving;
+    $("remove").hidden = !editing || S.readOnly;
+    $("remove").textContent = S.removeArmed ? "Tap again to remove" : "Remove my dish";
+  }
+  function celebrate() {
+    if (REDUCED || typeof window.confetti !== "function") return;
+    try {
+      window.confetti({ particleCount: 150, spread: 80, startVelocity: 42, origin: { y: 0.75 },
+        colors: ["#FF3D8B", "#FF6B1A", "#11A69B", "#FFC629", "#8B3DFF", "#2F7CF6"] });
+    } catch (e) { /* decoration only */ }
+  }
+
+  // ---------- server ----------
+  async function apiGet() {
+    const r = await fetch(API + (API.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+  async function apiPost(body) {
+    const r = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+  function apiErrorText(code) {
+    switch (code) {
+      case "alias_taken": return "Someone just took that alias. Spin again.";
+      case "full": return "The board is full. Text Natesh what you're bringing.";
+      case "missing": return "Fill in your name, your dish and a category.";
+      case "not_found": return "Your entry isn't on the board anymore. Add it again.";
+      default: return "That didn't save. Try again in a moment.";
+    }
+  }
+
+  async function refresh() {
+    if (!API) return;
+    const my = ++S.gen;
+    try {
+      const res = await apiGet();
+      if (my !== S.gen) return;
+      if (!res || !res.ok || !Array.isArray(res.dishes)) throw new Error("bad response");
+      S.dishes = res.dishes.map(d => normalize(String((d && d.id) || ""), d)).filter(d => d.id);
+      S.boardLoaded = true;
+      setStatus($("board-status"), "");
+      S.mine = S.local.id ? (S.dishes.find(d => d.id === S.local.id) || null) : null;
+      if (S.local.id && !S.mine && my > S.writeGen) forgetEntry();
+      if (S.mine && !S.prefilled && !$("f-dish").value) { S.prefilled = true; fillForm(S.mine); }
+      renderAll();
+    } catch (e) {
+      if (my !== S.gen) return;
+      setStatus($("board-status"), S.boardLoaded
+        ? "The board may be out of date. Check your connection."
+        : "The board couldn't load. Check your connection and refresh the page.", "warn");
+    }
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    if (S.saving || S.readOnly || S.spinning) return;
+    const v = readForm();
+    const status = $("form-status");
+    if (!v.realName) { setStatus(status, "Add your real name so Natesh knows who's who.", "warn"); $("f-name").focus(); return; }
+    if (!v.dish) { setStatus(status, "Add what you're bringing.", "warn"); $("f-dish").focus(); return; }
+    if (!v.category) { setStatus(status, "Pick a category.", "warn"); $("cat-apps").focus(); return; }
+    if (!S.alias || takenAliases().has(S.alias.toLowerCase())) { setStatus(status, "Someone already has that alias. Spin again.", "warn"); return; }
+
+    const isUpdate = !!(S.mine && S.local.id && S.local.key);
+    const body = Object.assign({
+      action: isUpdate ? "update" : "add",
+      alias: S.alias,
+      website: $("website").value
+    }, v);
+    if (isUpdate) { body.id = S.local.id; body.key = S.local.key; }
+
+    S.saving = true; renderFormMode();
+    try {
+      const res = await apiPost(body);
+      if (!res || !res.ok) {
+        if (res && res.error === "not_found") forgetEntry();
+        setStatus(status, apiErrorText(res && res.error), "warn");
+        return;
+      }
+      S.local = { id: res.id, key: res.key, address: res.address, realName: v.realName };
+      saveLocal();
+      S.writeGen = S.gen + 1;
+      showAddress(res.address);
+      const entry = normalize(res.id, Object.assign({}, v, { alias: S.alias, createdAt: new Date().toISOString() }));
+      S.dishes = S.dishes.filter(d => d.id !== res.id).concat(entry);
+      S.mine = entry;
+      S.boardLoaded = true;
+      renderAll();
+      const place = typeof res.address === "string" ? res.address.split(", San Francisco")[0] : "";
+      setStatus(status, isUpdate
+        ? "Saved."
+        : `You're on the board as ${S.alias}. See you at ${place || "Natesh's"} at 6 PM.`);
+      if (!isUpdate) celebrate();
+      refresh();
+    } catch (err) {
+      setStatus(status, "That didn't save. Check your connection and try again.", "warn");
+    } finally {
+      S.saving = false; renderFormMode();
+    }
+  }
+
+  async function onRemoveMine() {
+    if (!S.mine || S.saving) return;
+    if (!S.removeArmed) {
+      S.removeArmed = true; renderFormMode();
+      setTimeout(() => { S.removeArmed = false; renderFormMode(); }, 4000);
+      return;
+    }
+    S.removeArmed = false; S.saving = true; renderFormMode();
+    try {
+      const res = await apiPost({ action: "remove", id: S.local.id, key: S.local.key });
+      if (res && (res.ok || res.error === "not_found")) {
+        const id = S.local.id;
+        forgetEntry();
+        S.writeGen = S.gen + 1;
+        S.dishes = S.dishes.filter(d => d.id !== id);
+        resetForm();
+        renderAll();
+        setStatus($("form-status"), "Your dish is off the board.");
+        refresh();
+      } else {
+        setStatus($("form-status"), apiErrorText(res && res.error), "warn");
+      }
+    } catch (err) {
+      setStatus($("form-status"), "That didn't go through. Check your connection and try again.", "warn");
+    } finally {
+      S.saving = false; renderFormMode();
+    }
+  }
+
+  // ---------- rendering ----------
+  function byCategory(list) {
+    const groups = {};
+    CAT_IDS.forEach(c => { groups[c] = []; });
+    list.forEach(d => groups[d.category].push(d));
+    CAT_IDS.forEach(c => groups[c].sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || "")));
+    return groups;
+  }
+  function people() { return S.dishes.reduce((n, d) => n + d.party, 0); }
+  function renderStats() {
+    if (!S.boardLoaded) { $("stats").textContent = ""; return; }
+    const d = S.dishes.length, p = people();
+    $("stats").textContent = `${d} ${d === 1 ? "dish" : "dishes"} · ${p} coming`;
+  }
+  function entryChips(d) {
+    const chips = [];
+    if (S.local.id && d.id === S.local.id) chips.push(h("span", { class: "chip you", text: "You" }));
+    if (d.party > 1) chips.push(h("span", { class: "chip", text: `+${d.party - 1}` }));
+    if (d.category !== "supplies" && d.category !== "drinks" && !d.tags.includes("veg"))
+      chips.push(h("span", { class: "chip nonveg", text: "Non-veg" }));
+    d.tags.forEach(t => chips.push(h("span", { class: "chip", text: TAGS[t] })));
+    return chips;
+  }
+  function sticker(d) {
+    return h("article", { class: "sticker", style: `--r:${tilt(d.id)};--c:var(--c-${d.category})` },
+      h("div", { class: "nametag" },
+        h("div", { class: "band", "aria-hidden": "true" },
+          h("span", { class: "hello", text: "HELLO" }), h("span", { class: "mni", text: "my name is" })),
+        h("div", { class: "alias", text: d.alias })),
+      h("div", { class: "bring" },
+        h("span", { class: "lbl", text: CAT_LABEL[d.category] }),
+        h("p", { class: "dish", text: d.dish }),
+        h("p", { class: "meta" }, entryChips(d))));
+  }
+  function renderBoard() {
+    if (!S.boardLoaded) return;
+    if (!S.dishes.length) {
+      $("board").replaceChildren(h("p", { class: "empty-board", text: "Nobody's on the board yet. Be the first." }));
+      return;
+    }
+    const groups = byCategory(S.dishes);
+    $("board").replaceChildren(h("div", { class: "board-grid" }, CAT_IDS.flatMap(c => groups[c]).map(sticker)));
+  }
+  function renderAll() { renderStats(); renderBoard(); renderFormMode(); }
+
+  // ---------- events ----------
+  let dishTimer = null;
+  $("f-dish").addEventListener("input", () => {
+    clearTimeout(dishTimer);
+    dishTimer = setTimeout(() => { if (!S.aliasTouched && !S.spinning) setAlias(pickAlias(), true); }, 350);
+  });
+  $("f-cats").addEventListener("change", () => {
+    paintAliasColor();
+    if (!S.aliasTouched && !$("f-dish").value.trim()) setAlias(pickAlias(), true);
+  });
+  $("spin").addEventListener("click", spin);
+  $("remove").addEventListener("click", onRemoveMine);
+  form.addEventListener("submit", onSubmit);
+  form.addEventListener("reset", () => setStatus($("form-status"), ""));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
+
+  // ---------- start ----------
+  $("countdown").textContent = countdownText();
+  setInterval(() => { $("countdown").textContent = countdownText(); }, 60000);
+  if (S.local.realName) $("f-name").value = str(S.local.realName, 40);
+  if (S.local.address) showAddress(S.local.address);
+  setAlias(pickAlias(), false);
+  paintAliasColor();
+  renderAll();
+  if (!API) {
+    setStatus($("board-status"), "The board opens soon.", "warn");
+    setReadOnly("Sign-ups open soon.");
+  } else {
+    refresh();
+    setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 30000);
+  }
+})();
+</script>
+</body>
+</html>
