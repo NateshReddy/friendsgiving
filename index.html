@@ -37,7 +37,6 @@
   --c-bread: #2E9E48;
   --c-desserts: #8B3DFF;
   --c-drinks: #2F7CF6;
-  --c-supplies: #26102E;
   --manila: #F2D193;
   --stamp: #D62839;
   --pop: 5px 5px 0 var(--ink);
@@ -460,7 +459,6 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
             <label class="pill" style="--c:var(--c-bread)"><input type="radio" name="cat" id="cat-bread" value="bread"><span>Bread &amp; rice</span></label>
             <label class="pill" style="--c:var(--c-desserts)"><input type="radio" name="cat" id="cat-desserts" value="desserts"><span>Desserts</span></label>
             <label class="pill" style="--c:var(--c-drinks)"><input type="radio" name="cat" id="cat-drinks" value="drinks"><span>Drinks &amp; ice</span></label>
-            <label class="pill" style="--c:var(--c-supplies)"><input type="radio" name="cat" id="cat-supplies" value="supplies"><span>Supplies</span></label>
           </div>
         </fieldset>
         <fieldset class="field">
@@ -533,8 +531,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     { id: "sides", label: "Sides" },
     { id: "bread", label: "Bread & rice" },
     { id: "desserts", label: "Desserts" },
-    { id: "drinks", label: "Drinks & ice" },
-    { id: "supplies", label: "Supplies" }
+    { id: "drinks", label: "Drinks & ice" }
   ];
   const CAT_IDS = CATS.map(c => c.id);
   const CAT_LABEL = Object.fromEntries(CATS.map(c => [c.id, c.label]));
@@ -554,7 +551,6 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     bread: ["Naan", "Roti", "Pulao"],
     desserts: ["Halwa", "Jalebi", "Sugar"],
     drinks: ["Chai", "Fizz", "Ice"],
-    supplies: ["Napkin", "Foil", "Cups"],
     none: ["Mystery", "Snack", "Feast"]
   };
   const TEMPLATES = [
