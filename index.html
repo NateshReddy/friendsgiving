@@ -467,12 +467,13 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
           <legend>Good to know</legend>
           <div class="pills">
             <label class="pill"><input type="checkbox" id="tag-veg" value="veg" checked><span>Vegetarian</span></label>
+            <label class="pill"><input type="checkbox" id="tag-meat" value="meat"><span>Has meat</span></label>
+            <label class="pill"><input type="checkbox" id="tag-egg" value="egg"><span>Has egg</span></label>
             <label class="pill"><input type="checkbox" id="tag-eggless" value="eggless"><span>Eggless</span></label>
-            <label class="pill"><input type="checkbox" id="tag-vegan" value="vegan"><span>Vegan</span></label>
-            <label class="pill"><input type="checkbox" id="tag-nuts" value="nuts"><span>Has nuts</span></label>
-            <label class="pill"><input type="checkbox" id="tag-spicy" value="spicy"><span>Spicy</span></label>
-            <label class="pill"><input type="checkbox" id="f-reheat"><span>Needs the oven</span></label>
-            <label class="pill"><input type="checkbox" id="f-fridge"><span>Needs fridge space</span></label>
+            <label class="pill"><input type="checkbox" id="need-oven" value="oven"><span>Needs the oven</span></label>
+            <label class="pill"><input type="checkbox" id="need-microwave" value="microwave"><span>Needs the microwave</span></label>
+            <label class="pill"><input type="checkbox" id="need-airfryer" value="airfryer"><span>Needs the air fryer</span></label>
+            <label class="pill"><input type="checkbox" id="need-fridge" value="fridge"><span>Needs fridge space</span></label>
           </div>
         </fieldset>
         <fieldset class="field">
@@ -537,8 +538,10 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   ];
   const CAT_IDS = CATS.map(c => c.id);
   const CAT_LABEL = Object.fromEntries(CATS.map(c => [c.id, c.label]));
-  const TAGS = { veg: "Vegetarian", eggless: "Eggless", vegan: "Vegan", nuts: "Has nuts", spicy: "Spicy" };
+  const TAGS = { veg: "Vegetarian", meat: "Has meat", egg: "Has egg", eggless: "Eggless" };
   const TAG_IDS = Object.keys(TAGS);
+  const NEEDS = ["oven", "microwave", "airfryer", "fridge"];
+  const OPPOSITE = { veg: "meat", meat: "veg", egg: "eggless", eggless: "egg" };
   const PARTY_DAY = new Date(2026, 10, 27);
   const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -571,6 +574,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   };
 
   const $ = id => document.getElementById(id);
+  let dishTimer = null;
   const form = $("dish-form");
 
   function h(tag, props, ...kids) {
@@ -640,8 +644,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
       dish: str(d.dish, 80) || "Something tasty",
       category: CAT_IDS.includes(d.category) ? d.category : "sides",
       tags: Array.isArray(d.tags) ? d.tags.filter(t => TAG_IDS.includes(t)) : [],
-      reheat: d.reheat === true,
-      fridge: d.fridge === true,
+      needs: Array.isArray(d.needs) ? d.needs.filter(n => NEEDS.includes(n)) : [],
       party: Number.isFinite(party) && party >= 1 && party <= 4 ? Math.round(party) : 1,
       createdAt: str(d.createdAt, 40)
     };
@@ -725,8 +728,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
       dish: $("f-dish").value.trim().slice(0, 60),
       category: selectedCat(),
       tags: TAG_IDS.filter(t => $("tag-" + t).checked),
-      reheat: $("f-reheat").checked,
-      fridge: $("f-fridge").checked,
+      needs: NEEDS.filter(n => $("need-" + n).checked),
       party: party ? Number(party.value) : 1
     };
   }
@@ -734,8 +736,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     $("f-dish").value = e.dish;
     const c = $("cat-" + e.category); if (c) c.checked = true;
     TAG_IDS.forEach(t => { $("tag-" + t).checked = e.tags.includes(t); });
-    $("f-reheat").checked = e.reheat;
-    $("f-fridge").checked = e.fridge;
+    NEEDS.forEach(n => { $("need-" + n).checked = e.needs.includes(n); });
     const p = $("party-" + Math.min(e.party, 3)); if (p) p.checked = true;
     S.aliasTouched = true;
     setAlias(e.alias, false);
@@ -829,10 +830,13 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     if (!v.category) { setStatus(status, "Pick a category.", "warn"); $("cat-apps").focus(); return; }
     if (!S.alias || takenAliases().has(S.alias.toLowerCase())) { setStatus(status, "Someone already has that alias. Spin again.", "warn"); return; }
 
+    clearTimeout(dishTimer);
+    S.aliasTouched = true;
+    const alias = S.alias;
     const isUpdate = !!(S.mine && S.local.id && S.local.key);
     const body = Object.assign({
       action: isUpdate ? "update" : "add",
-      alias: S.alias,
+      alias,
       website: $("website").value
     }, v);
     if (isUpdate) { body.id = S.local.id; body.key = S.local.key; }
@@ -849,7 +853,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
       saveLocal();
       S.writeGen = S.gen + 1;
       showAddress(res.address);
-      const entry = normalize(res.id, Object.assign({}, v, { alias: S.alias, createdAt: new Date().toISOString() }));
+      const entry = normalize(res.id, Object.assign({}, v, { alias, createdAt: new Date().toISOString() }));
       S.dishes = S.dishes.filter(d => d.id !== res.id).concat(entry);
       S.mine = entry;
       S.boardLoaded = true;
@@ -857,7 +861,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
       const place = typeof res.address === "string" ? res.address.split(", San Francisco")[0] : "";
       setStatus(status, isUpdate
         ? "Saved."
-        : `You're on the board as ${S.alias}. See you at ${place || "Natesh's"} at 6 PM.`);
+        : `You're on the board as ${alias}. See you at ${place || "Natesh's"} at 6 PM.`);
       if (!isUpdate) celebrate();
       refresh();
     } catch (err) {
@@ -914,9 +918,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     const chips = [];
     if (S.local.id && d.id === S.local.id) chips.push(h("span", { class: "chip you", text: "You" }));
     if (d.party > 1) chips.push(h("span", { class: "chip", text: `+${d.party - 1}` }));
-    if (d.category !== "supplies" && d.category !== "drinks" && !d.tags.includes("veg"))
-      chips.push(h("span", { class: "chip nonveg", text: "Non-veg" }));
-    d.tags.forEach(t => chips.push(h("span", { class: "chip", text: TAGS[t] })));
+    d.tags.forEach(t => chips.push(h("span", { class: t === "meat" || t === "egg" ? "chip nonveg" : "chip", text: TAGS[t] })));
     return chips;
   }
   function sticker(d) {
@@ -942,15 +944,17 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   function renderAll() { renderStats(); renderBoard(); renderFormMode(); }
 
   // ---------- events ----------
-  let dishTimer = null;
   $("f-dish").addEventListener("input", () => {
     clearTimeout(dishTimer);
-    dishTimer = setTimeout(() => { if (!S.aliasTouched && !S.spinning) setAlias(pickAlias(), true); }, 350);
+    dishTimer = setTimeout(() => { if (!S.aliasTouched && !S.spinning && !S.saving) setAlias(pickAlias(), true); }, 350);
   });
   $("f-cats").addEventListener("change", () => {
     paintAliasColor();
     if (!S.aliasTouched && !$("f-dish").value.trim()) setAlias(pickAlias(), true);
   });
+  TAG_IDS.forEach(t => $("tag-" + t).addEventListener("change", ev => {
+    if (ev.target.checked) $("tag-" + OPPOSITE[t]).checked = false;
+  }));
   $("spin").addEventListener("click", spin);
   $("remove").addEventListener("click", onRemoveMine);
   form.addEventListener("submit", onSubmit);
