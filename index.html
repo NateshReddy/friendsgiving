@@ -395,6 +395,25 @@ input[type="text"]:disabled { opacity: 0.5; }
   font-size: 1.05rem;
 }
 
+[hidden] { display: none !important; }
+.stack { display: grid; gap: 18px; }
+.opt { font-family: var(--font-body); font-size: 0.78rem; font-weight: 700; text-transform: lowercase; opacity: 0.7; margin-left: 4px; }
+.actions.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.actions.row .primary { width: auto; flex: 1 1 160px; }
+.card-h { margin: 0 0 4px; font-family: var(--font-display); font-weight: 400; font-size: 1.25rem; text-transform: uppercase; }
+.me-row { display: grid; grid-template-columns: minmax(0, 150px) 1fr; gap: 16px; align-items: center; }
+.nametag.mini .hello { font-size: 0.9rem; }
+.nametag.mini .mni { font-size: 0.62rem; }
+.nametag.mini .alias { font-size: 1.1rem; padding: 9px 8px 11px; }
+.me-title { margin: 0; font-family: var(--font-display); font-size: 1.35rem; line-height: 1.1; }
+.me-sub { margin: 2px 0 10px; font-weight: 600; }
+.me-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.save-link { margin-top: 18px; padding-top: 16px; border-top: 2.5px dashed var(--ink); }
+.save-link p { margin: 0 0 10px; font-weight: 600; }
+#link-fallback { margin-top: 10px; font-size: 0.85rem; }
+.declined p { margin: 6px 0 14px; }
+.sticker .dish.undecided { font-weight: 700; font-style: italic; opacity: 0.7; }
+@media (max-width: 380px) { .me-row { grid-template-columns: 1fr; } }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 footer { text-align: center; display: grid; gap: 4px; }
 footer .big { font-family: var(--font-display); font-size: 1.1rem; }
@@ -434,71 +453,129 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     </div>
   </div>
 
-  <section id="signup" aria-labelledby="form-h">
-    <h2 id="form-h">Add your dish</h2>
-    <p id="form-intro" class="sub">Pick what you're bringing and spin for a secret alias. The board only shows aliases, so keep yours quiet.</p>
+  <section id="signup" aria-labelledby="rsvp-h">
+    <h2 id="rsvp-h">RSVP</h2>
+    <p id="rsvp-intro" class="sub">Tell us you're coming now. Add your dish whenever you've decided.</p>
     <div id="form-status" class="status" role="status" aria-live="polite"></div>
-    <form id="dish-form" class="card" novalidate>
-      <fieldset id="form-fs" class="wrapper">
-        <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
-        <div class="field">
-          <label id="name-label" for="f-name">Your real name</label>
-          <input type="text" id="f-name" autocomplete="name" maxlength="40">
-          <p id="name-help" class="help">Only Natesh sees this.</p>
-        </div>
-        <div class="field">
-          <label for="f-dish">What are you bringing?</label>
-          <input type="text" id="f-dish" maxlength="60" placeholder="Aloo gobi, garlic naan, a bag of ice">
-        </div>
-        <fieldset class="field">
-          <legend>Category</legend>
-          <div class="pills" id="f-cats">
-            <label class="pill" style="--c:var(--c-apps)"><input type="radio" name="cat" id="cat-apps" value="apps"><span>Appetizers</span></label>
-            <label class="pill" style="--c:var(--c-mains)"><input type="radio" name="cat" id="cat-mains" value="mains"><span>Mains</span></label>
-            <label class="pill" style="--c:var(--c-sides)"><input type="radio" name="cat" id="cat-sides" value="sides"><span>Sides</span></label>
-            <label class="pill" style="--c:var(--c-bread)"><input type="radio" name="cat" id="cat-bread" value="bread"><span>Bread &amp; rice</span></label>
-            <label class="pill" style="--c:var(--c-desserts)"><input type="radio" name="cat" id="cat-desserts" value="desserts"><span>Desserts</span></label>
-            <label class="pill" style="--c:var(--c-drinks)"><input type="radio" name="cat" id="cat-drinks" value="drinks"><span>Drinks &amp; ice</span></label>
+    <div class="stack">
+
+      <form id="rsvp-form" class="card" novalidate>
+        <fieldset id="rsvp-fs" class="wrapper">
+          <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+          <div class="field">
+            <label for="f-name">Your real name</label>
+            <input type="text" id="f-name" autocomplete="name" maxlength="40">
+            <p class="help">Only Natesh sees this.</p>
           </div>
-        </fieldset>
-        <fieldset class="field">
-          <legend>Good to know</legend>
-          <div class="pills">
-            <label class="pill"><input type="checkbox" id="tag-veg" value="veg" checked><span>Vegetarian</span></label>
-            <label class="pill"><input type="checkbox" id="tag-meat" value="meat"><span>Has meat</span></label>
-            <label class="pill"><input type="checkbox" id="tag-egg" value="egg"><span>Has egg</span></label>
-            <label class="pill"><input type="checkbox" id="tag-eggless" value="eggless"><span>Eggless</span></label>
-            <label class="pill"><input type="checkbox" id="need-oven" value="oven"><span>Needs the oven</span></label>
-            <label class="pill"><input type="checkbox" id="need-microwave" value="microwave"><span>Needs the microwave</span></label>
-            <label class="pill"><input type="checkbox" id="need-airfryer" value="airfryer"><span>Needs the air fryer</span></label>
-            <label class="pill"><input type="checkbox" id="need-fridge" value="fridge"><span>Needs fridge space</span></label>
-          </div>
-        </fieldset>
-        <fieldset class="field">
-          <legend>How many of you?</legend>
-          <div class="pills">
-            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-1" value="1" checked><span>Just me</span></label>
-            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-2" value="2"><span>Me + 1</span></label>
-            <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-3" value="3"><span>Me + 2</span></label>
-          </div>
-        </fieldset>
-        <fieldset class="field">
-          <legend>Your secret alias</legend>
-          <div class="slot">
-            <div class="nametag" id="alias-tag">
-              <div class="band" aria-hidden="true"><span class="hello">HELLO</span><span class="mni">my name is</span></div>
-              <div class="alias" id="alias-text" aria-live="polite"></div>
+          <fieldset class="field">
+            <legend>How many of you?</legend>
+            <div class="pills">
+              <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-1" value="1" checked><span>Just me</span></label>
+              <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-2" value="2"><span>Me + 1</span></label>
+              <label class="pill" style="--c:var(--ink)"><input type="radio" name="party" id="party-3" value="3"><span>Me + 2</span></label>
             </div>
-            <button type="button" id="spin" class="btn spin-btn">Spin</button>
-            <p class="slot-help">Made from your dish. Spin until it feels right.</p>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Leaning toward <span class="opt">optional</span></legend>
+            <div class="pills" id="f-lean">
+              <label class="pill" style="--c:var(--ink)"><input type="radio" name="lean" id="lean-none" value="" checked><span>Not sure yet</span></label>
+              <label class="pill" style="--c:var(--c-apps)"><input type="radio" name="lean" id="lean-apps" value="apps"><span>Appetizers</span></label>
+              <label class="pill" style="--c:var(--c-mains)"><input type="radio" name="lean" id="lean-mains" value="mains"><span>Mains</span></label>
+              <label class="pill" style="--c:var(--c-sides)"><input type="radio" name="lean" id="lean-sides" value="sides"><span>Sides</span></label>
+              <label class="pill" style="--c:var(--c-bread)"><input type="radio" name="lean" id="lean-bread" value="bread"><span>Bread &amp; rice</span></label>
+              <label class="pill" style="--c:var(--c-desserts)"><input type="radio" name="lean" id="lean-desserts" value="desserts"><span>Desserts</span></label>
+              <label class="pill" style="--c:var(--c-drinks)"><input type="radio" name="lean" id="lean-drinks" value="drinks"><span>Drinks &amp; ice</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="field" id="alias-field">
+            <legend>Your secret alias</legend>
+            <div class="slot">
+              <div class="nametag" id="alias-tag">
+                <div class="band" aria-hidden="true"><span class="hello">HELLO</span><span class="mni">my name is</span></div>
+                <div class="alias" id="alias-text" aria-live="polite"></div>
+              </div>
+              <button type="button" id="spin" class="btn spin-btn">Spin</button>
+              <p class="slot-help">Spin until it feels right. You can re-spin once you pick a dish.</p>
+            </div>
+          </fieldset>
+          <div class="actions row">
+            <button type="submit" id="rsvp-yes" class="btn primary">I'm in</button>
+            <button type="button" id="rsvp-no" class="btn ghost">Can't make it</button>
           </div>
         </fieldset>
-        <div class="actions">
-          <button type="submit" id="save" class="btn primary">Put me on the board</button>
-          <button type="button" id="remove" class="btn danger small" hidden>Remove my dish</button>
+      </form>
+
+      <div id="me-card" class="card me" hidden>
+        <div class="me-row">
+          <div class="nametag mini" id="me-tag">
+            <div class="band" aria-hidden="true"><span class="hello">HELLO</span><span class="mni">my name is</span></div>
+            <div class="alias" id="me-alias" aria-live="polite"></div>
+          </div>
+          <div class="me-info">
+            <p class="me-title">You're in</p>
+            <p id="me-party" class="me-sub"></p>
+            <div class="me-actions">
+              <button type="button" id="me-spin" class="btn ghost small">Spin a new alias</button>
+              <button type="button" id="me-edit" class="btn ghost small">Change RSVP</button>
+            </div>
+          </div>
         </div>
-      </fieldset>
-    </form>
+        <div class="save-link">
+          <p>Save your link to add or change your dish from any phone.</p>
+          <div class="actions row">
+            <button type="button" id="copy-link" class="btn ghost small">Copy my link</button>
+            <span id="copy-status" class="copy-note" role="status" aria-live="polite"></span>
+          </div>
+          <input type="text" id="link-fallback" readonly hidden aria-label="Your personal link">
+        </div>
+      </div>
+
+      <form id="dish-form" class="card" hidden novalidate>
+        <h3 class="card-h" id="dish-h">Add your dish</h3>
+        <p class="help" style="margin:0 0 16px">Add it by Wednesday night so Natesh can fill any gaps.</p>
+        <fieldset id="dish-fs" class="wrapper">
+          <div class="field">
+            <label for="f-dish">What are you bringing?</label>
+            <input type="text" id="f-dish" maxlength="60" placeholder="Aloo gobi, garlic naan, a bag of ice">
+          </div>
+          <fieldset class="field">
+            <legend>Category</legend>
+            <div class="pills" id="f-cats">
+              <label class="pill" style="--c:var(--c-apps)"><input type="radio" name="cat" id="cat-apps" value="apps"><span>Appetizers</span></label>
+              <label class="pill" style="--c:var(--c-mains)"><input type="radio" name="cat" id="cat-mains" value="mains"><span>Mains</span></label>
+              <label class="pill" style="--c:var(--c-sides)"><input type="radio" name="cat" id="cat-sides" value="sides"><span>Sides</span></label>
+              <label class="pill" style="--c:var(--c-bread)"><input type="radio" name="cat" id="cat-bread" value="bread"><span>Bread &amp; rice</span></label>
+              <label class="pill" style="--c:var(--c-desserts)"><input type="radio" name="cat" id="cat-desserts" value="desserts"><span>Desserts</span></label>
+              <label class="pill" style="--c:var(--c-drinks)"><input type="radio" name="cat" id="cat-drinks" value="drinks"><span>Drinks &amp; ice</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="field">
+            <legend>Good to know</legend>
+            <div class="pills">
+              <label class="pill"><input type="checkbox" id="tag-veg" value="veg" checked><span>Vegetarian</span></label>
+              <label class="pill"><input type="checkbox" id="tag-meat" value="meat"><span>Has meat</span></label>
+              <label class="pill"><input type="checkbox" id="tag-egg" value="egg"><span>Has egg</span></label>
+              <label class="pill"><input type="checkbox" id="tag-eggless" value="eggless"><span>Eggless</span></label>
+              <label class="pill"><input type="checkbox" id="need-oven" value="oven"><span>Needs the oven</span></label>
+              <label class="pill"><input type="checkbox" id="need-microwave" value="microwave"><span>Needs the microwave</span></label>
+              <label class="pill"><input type="checkbox" id="need-airfryer" value="airfryer"><span>Needs the air fryer</span></label>
+              <label class="pill"><input type="checkbox" id="need-fridge" value="fridge"><span>Needs fridge space</span></label>
+            </div>
+          </fieldset>
+          <div class="actions">
+            <button type="submit" id="dish-save" class="btn primary">Add my dish</button>
+            <button type="button" id="dish-remove" class="btn danger small" hidden>Remove my dish</button>
+          </div>
+        </fieldset>
+      </form>
+
+      <div id="declined-card" class="card declined" hidden>
+        <p class="me-title">We'll miss you</p>
+        <p>Plans changed? You can still RSVP.</p>
+        <div class="actions row"><button type="button" id="rejoin" class="btn primary">I can make it after all</button></div>
+      </div>
+
+    </div>
   </section>
 
   <section aria-labelledby="board-h">
@@ -524,6 +601,7 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   // Google Apps Script web app URL for the "Friendsgiving signups" sheet (ends in /exec).
   const API = "https://script.google.com/macros/s/AKfycby67gpNo35I3Zhw4eUJl6agWylTTV5tAUZow0WvZ3ZP5y-TQF2FLEQdPD75uNnfOzUP/exec";
   const LS_KEY = "friendsgiving-2026-signup";
+  const SERVER_VERSION = 2;
 
   const CATS = [
     { id: "apps", label: "Appetizers" },
@@ -545,13 +623,13 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   const STOP = new Set(("and with the a an of in on my our homemade home made style some fresh mini extra plus or for from to " +
     "de la ka ki ke mom moms maa amma nani dadi special famous classic easy quick best bag bags box tray big small pcs piece pieces").split(" "));
   const FALLBACK = {
-    apps: ["Pakora", "Chaat", "Nibbles"],
-    mains: ["Curry", "Feast", "Paneer"],
-    sides: ["Sabzi", "Tadka", "Sidekick"],
+    apps: ["Pakora", "Chaat", "Samosa"],
+    mains: ["Curry", "Paneer", "Tadka"],
+    sides: ["Sabzi", "Raita", "Chutney"],
     bread: ["Naan", "Roti", "Pulao"],
-    desserts: ["Halwa", "Jalebi", "Sugar"],
-    drinks: ["Chai", "Fizz", "Ice"],
-    none: ["Mystery", "Snack", "Feast"]
+    desserts: ["Halwa", "Jalebi", "Gulab"],
+    drinks: ["Chai", "Fizz", "Lassi"],
+    none: ["Biryani", "Chai", "Samosa", "Paneer", "Masala", "Pakora", "Naan", "Jalebi", "Chutney", "Tadka", "Lassi", "Gravy"]
   };
   const TEMPLATES = [
     w => `Captain ${w}`, w => `Agent ${w}`, w => `DJ ${w}`, w => `Dr. ${w}`, w => `Professor ${w}`,
@@ -562,16 +640,15 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     w => `${w} Bhai`, w => `Count ${w}`, w => `Mystery ${w}`, w => `${w} Overlord`, w => `Secret ${w} Society`
   ];
 
-  const S = {
-    dishes: [], boardLoaded: false, readOnly: false, mine: null, prefilled: false,
-    local: loadLocal(), gen: 0, writeGen: 0,
-    alias: "", aliasTouched: false, spinning: false,
-    saving: false, removeArmed: false
-  };
-
   const $ = id => document.getElementById(id);
   let dishTimer = null;
-  const form = $("dish-form");
+
+  const S = {
+    guests: [], boardLoaded: false, serverOld: false,
+    local: loadLocal(), mine: null, prefilled: false,
+    editingRsvp: false, gen: 0, writeGen: 0,
+    rsvpAlias: "", spinning: false, saving: false, removeArmed: false
+  };
 
   function h(tag, props, ...kids) {
     const el = document.createElement(tag);
@@ -593,8 +670,9 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     el.textContent = text || "";
     el.className = "status" + (tone ? " " + tone : "");
   }
+  const say = (text, tone) => setStatus($("form-status"), text, tone);
 
-  // ---------- this device's sign-up ----------
+  // ---------- this device's RSVP ----------
   function loadLocal() {
     try { const v = JSON.parse(localStorage.getItem(LS_KEY)); return v && typeof v === "object" ? v : {}; }
     catch (e) { return {}; }
@@ -603,9 +681,12 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     try { localStorage.setItem(LS_KEY, JSON.stringify(S.local)); } catch (e) { /* private mode */ }
   }
   function forgetEntry() {
-    S.local = { address: S.local.address, realName: S.local.realName };
+    S.local = { realName: S.local.realName };
     saveLocal();
     S.mine = null;
+  }
+  function myLink() {
+    return location.origin + location.pathname + "#me=" + S.local.id + "." + S.local.key;
   }
 
   // ---------- address ----------
@@ -616,6 +697,9 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
       document.createTextNode(first),
       h("small", null, "San Francisco · ",
         h("a", { href: "https://maps.google.com/?q=" + encodeURIComponent(addr), target: "_blank", rel: "noopener", text: "Open in Maps" })));
+  }
+  function shortAddress() {
+    return typeof S.local.address === "string" ? S.local.address.split(", San Francisco")[0] : "";
   }
 
   // ---------- countdown ----------
@@ -631,14 +715,17 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
 
   // ---------- data hygiene ----------
   function str(v, max) { return typeof v === "string" ? v.trim().slice(0, max) : ""; }
-  function normalize(id, d) {
+  function normalize(d) {
     d = d || {};
     const party = Number(d.party);
+    const dish = str(d.dish, 80);
     return {
-      id,
+      id: str(String(d.id || ""), 40),
+      status: d.status === "no" ? "no" : "yes",
       alias: str(d.alias, 40) || "Mystery Guest",
-      dish: str(d.dish, 80) || "Something tasty",
-      category: CAT_IDS.includes(d.category) ? d.category : "sides",
+      dish,
+      category: dish && CAT_IDS.includes(d.category) ? d.category : (dish ? "sides" : ""),
+      leaning: CAT_IDS.includes(d.leaning) ? d.leaning : "",
       tags: Array.isArray(d.tags) ? d.tags.filter(t => TAG_IDS.includes(t)) : [],
       needs: Array.isArray(d.needs) ? d.needs.filter(n => NEEDS.includes(n)) : [],
       party: Number.isFinite(party) && party >= 1 && party <= 4 ? Math.round(party) : 1,
@@ -650,23 +737,23 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     for (let i = 0; i < id.length; i++) x = (x * 31 + id.charCodeAt(i)) >>> 0;
     return ((x % 70) / 10 - 3.5).toFixed(1) + "deg";
   }
+  const going = () => S.guests.filter(g => g.status === "yes");
 
   // ---------- aliases ----------
   function cap(w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }
-  function dishWords() {
-    const words = $("f-dish").value.replace(/['’]/g, "").split(/[^A-Za-zÀ-ɏ]+/)
+  function wordsFrom(dish, cat) {
+    const words = (dish || "").replace(/['’]/g, "").split(/[^A-Za-zÀ-ɏ]+/)
       .filter(w => w.length >= 3 && !STOP.has(w.toLowerCase())).map(cap);
     const uniq = [...new Set(words)];
-    return uniq.length ? uniq : FALLBACK[selectedCat() || "none"];
+    return uniq.length ? uniq : FALLBACK[cat || "none"];
   }
   function takenAliases() {
     const mineId = S.local.id || null;
-    return new Set(S.dishes.filter(d => d.id !== mineId).map(d => d.alias.toLowerCase()));
+    return new Set(going().filter(d => d.id !== mineId).map(d => d.alias.toLowerCase()));
   }
   function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function anyAlias(words) { return rand(TEMPLATES)(rand(words)); }
-  function pickAlias(avoid) {
-    const words = dishWords();
+  function pickAlias(words, avoid) {
     const taken = takenAliases();
     for (let i = 0; i < 300; i++) {
       const a = anyAlias(words);
@@ -675,98 +762,66 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     }
     return anyAlias(words);
   }
-  function setAlias(a, pop) {
-    S.alias = a;
-    $("alias-text").textContent = a;
-    const tag = $("alias-tag");
-    if (pop && !REDUCED) { tag.classList.remove("pop"); void tag.offsetWidth; tag.classList.add("pop"); }
+  function pop(tag) {
+    if (REDUCED) return;
+    tag.classList.remove("pop"); void tag.offsetWidth; tag.classList.add("pop");
   }
-  function spin() {
-    if (S.spinning || S.readOnly) return;
-    S.aliasTouched = true;
-    const final = pickAlias(S.alias);
-    if (REDUCED) { setAlias(final, false); return; }
+  // Slot-machine spin on a name tag. Resolves with the final alias.
+  function spinTag(tag, text, words, avoid) {
+    const final = pickAlias(words, avoid);
+    if (REDUCED) { text.textContent = final; return Promise.resolve(final); }
     S.spinning = true;
-    $("spin").disabled = true;
-    const tag = $("alias-tag");
     tag.classList.remove("pop");
     tag.classList.add("spinning");
-    const words = dishWords();
     const delays = [40, 40, 45, 50, 55, 65, 75, 90, 110, 135, 165, 200];
     let i = 0;
-    const tick = () => {
-      if (i < delays.length) {
-        $("alias-text").textContent = anyAlias(words);
-        setTimeout(tick, delays[i++]);
-        return;
-      }
-      tag.classList.remove("spinning");
-      setAlias(final, true);
-      S.spinning = false;
-      $("spin").disabled = S.readOnly;
-    };
-    tick();
+    return new Promise(resolve => {
+      const tick = () => {
+        if (i < delays.length) { text.textContent = anyAlias(words); setTimeout(tick, delays[i++]); return; }
+        tag.classList.remove("spinning");
+        text.textContent = final;
+        pop(tag);
+        S.spinning = false;
+        resolve(final);
+      };
+      tick();
+    });
   }
-  function paintAliasColor() {
-    const c = selectedCat();
-    $("alias-tag").style.setProperty("--c", c ? `var(--c-${c})` : "var(--pink)");
-  }
+  function catColor(c) { return c ? `var(--c-${c})` : "var(--pink)"; }
 
-  // ---------- form ----------
-  function selectedCat() {
-    const r = form.querySelector('input[name="cat"]:checked');
+  // ---------- RSVP form ----------
+  function leaning() {
+    const r = document.querySelector('input[name="lean"]:checked');
     return r ? r.value : "";
   }
-  function readForm() {
-    const party = form.querySelector('input[name="party"]:checked');
-    return {
-      realName: $("f-name").value.trim().slice(0, 40),
-      dish: $("f-dish").value.trim().slice(0, 60),
-      category: selectedCat(),
-      tags: TAG_IDS.filter(t => $("tag-" + t).checked),
-      needs: NEEDS.filter(n => $("need-" + n).checked),
-      party: party ? Number(party.value) : 1
-    };
+  function partySize() {
+    const r = document.querySelector('input[name="party"]:checked');
+    return r ? Number(r.value) : 1;
   }
-  function fillForm(e) {
+  function setRsvpAlias(a, withPop) {
+    S.rsvpAlias = a;
+    $("alias-text").textContent = a;
+    if (withPop) pop($("alias-tag"));
+  }
+  async function onSpinRsvp() {
+    if (S.spinning || S.saving) return;
+    $("spin").disabled = true;
+    const a = await spinTag($("alias-tag"), $("alias-text"), wordsFrom("", leaning()), S.rsvpAlias);
+    S.rsvpAlias = a;
+    $("spin").disabled = false;
+  }
+
+  // ---------- dish form ----------
+  function selectedCat() {
+    const r = document.querySelector('input[name="cat"]:checked');
+    return r ? r.value : "";
+  }
+  function fillDish(e) {
     $("f-dish").value = e.dish;
-    const c = $("cat-" + e.category); if (c) c.checked = true;
-    TAG_IDS.forEach(t => { $("tag-" + t).checked = e.tags.includes(t); });
+    document.querySelectorAll('input[name="cat"]').forEach(r => { r.checked = r.value === e.category; });
+    if (!e.dish && e.leaning && $("cat-" + e.leaning)) $("cat-" + e.leaning).checked = true;
+    TAG_IDS.forEach(t => { $("tag-" + t).checked = e.dish ? e.tags.includes(t) : t === "veg"; });
     NEEDS.forEach(n => { $("need-" + n).checked = e.needs.includes(n); });
-    const p = $("party-" + Math.min(e.party, 3)); if (p) p.checked = true;
-    S.aliasTouched = true;
-    setAlias(e.alias, false);
-    paintAliasColor();
-  }
-  function resetForm() {
-    const keepName = $("f-name").value;
-    form.reset();
-    $("f-name").value = keepName;
-    $("tag-veg").checked = true;
-    $("party-1").checked = true;
-    S.aliasTouched = false;
-    setAlias(pickAlias(), false);
-    paintAliasColor();
-  }
-  function setReadOnly(msg) {
-    S.readOnly = true;
-    $("form-fs").disabled = true;
-    setStatus($("form-status"), msg, "warn");
-  }
-  function renderFormMode() {
-    const editing = !!S.mine;
-    $("form-h").textContent = editing ? "Your dish" : "Add your dish";
-    $("save").textContent = S.saving ? "Saving..." : (editing ? "Save changes" : "Put me on the board");
-    $("save").disabled = S.saving;
-    $("remove").hidden = !editing || S.readOnly;
-    $("remove").textContent = S.removeArmed ? "Tap again to remove" : "Remove my dish";
-  }
-  function celebrate() {
-    if (REDUCED || typeof window.confetti !== "function") return;
-    try {
-      window.confetti({ particleCount: 150, spread: 80, startVelocity: 42, origin: { y: 0.75 },
-        colors: ["#FF3D8B", "#FF6B1A", "#11A69B", "#FFC629", "#8B3DFF", "#2F7CF6"] });
-    } catch (e) { /* decoration only */ }
   }
 
   // ---------- server ----------
@@ -787,27 +842,180 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
   function apiErrorText(code) {
     switch (code) {
       case "alias_taken": return "Someone just took that alias. Spin again.";
-      case "full": return "The board is full. Text Natesh what you're bringing.";
-      case "missing": return "Fill in your name, your dish and a category.";
-      case "not_found": return "Your entry isn't on the board anymore. Add it again.";
+      case "full": return "The list is full. Text Natesh directly.";
+      case "missing": return "Something's missing. Check your name, and your dish and category if you're adding one.";
+      case "not_found": return "We couldn't find your RSVP anymore. Please RSVP again.";
       default: return "That didn't save. Try again in a moment.";
     }
   }
+  function record(over) {
+    // Full record for this guest, built from what we know, with changes applied.
+    const m = S.mine || {};
+    return Object.assign({
+      realName: S.local.realName || "",
+      alias: m.alias || "",
+      party: m.party || 1,
+      leaning: m.leaning || "",
+      status: m.status || "yes",
+      dish: m.dish || "",
+      category: m.category || "",
+      tags: m.tags || [],
+      needs: m.needs || []
+    }, over);
+  }
+  async function send(action, rec) {
+    const body = Object.assign({ action, website: $("website").value }, rec);
+    if (action !== "rsvp") { body.id = S.local.id; body.key = S.local.key; }
+    const res = await apiPost(body);
+    if (!res || !res.ok) {
+      if (res && res.error === "not_found") { forgetEntry(); render(); }
+      const err = new Error((res && res.error) || "failed");
+      err.code = (res && res.error) || "failed";
+      throw err;
+    }
+    S.local = { id: res.id, key: res.key, address: res.address || S.local.address || "", realName: rec.realName };
+    saveLocal();
+    S.writeGen = S.gen + 1;
+    if (res.address) showAddress(res.address);
+    const entry = normalize(Object.assign({}, rec, { id: res.id, createdAt: (S.mine && S.mine.createdAt) || new Date().toISOString() }));
+    S.guests = S.guests.filter(g => g.id !== res.id).concat(entry);
+    S.mine = entry;
+    S.boardLoaded = true;
+    return res;
+  }
+  async function guarded(fn) {
+    if (S.saving || S.spinning || S.serverOld) return;
+    S.saving = true; render();
+    try { await fn(); }
+    catch (err) { say(err && err.code ? apiErrorText(err.code) : "That didn't save. Check your connection and try again.", "warn"); }
+    finally { S.saving = false; render(); refresh(); }
+  }
 
+  async function onRsvpYes(e) {
+    e.preventDefault();
+    const realName = $("f-name").value.trim().slice(0, 40);
+    if (!realName) { say("Add your real name so Natesh knows who's coming.", "warn"); $("f-name").focus(); return; }
+    if (!S.rsvpAlias || takenAliases().has(S.rsvpAlias.toLowerCase())) { say("Someone already has that alias. Spin again.", "warn"); return; }
+    const wasGoing = !!(S.mine && S.mine.status === "yes");
+    await guarded(async () => {
+      const rec = record({ realName, alias: S.rsvpAlias, party: partySize(), leaning: leaning(), status: "yes" });
+      await send(S.mine ? "update" : "rsvp", rec);
+      S.editingRsvp = false;
+      if (wasGoing) say("RSVP updated.");
+      else {
+        say(`You're in as ${rec.alias}. See you at ${shortAddress() || "Natesh's"} at 6 PM. Add your dish below whenever you're ready.`);
+        celebrate();
+      }
+    });
+  }
+  async function onRsvpNo() {
+    const realName = $("f-name").value.trim().slice(0, 40);
+    if (!realName) { say("Add your name first so Natesh knows who can't make it.", "warn"); $("f-name").focus(); return; }
+    await guarded(async () => {
+      await send(S.mine ? "update" : "rsvp", record({ realName, status: "no", alias: S.mine ? S.mine.alias : S.rsvpAlias }));
+      S.editingRsvp = false;
+      say("Got it. We'll miss you.");
+    });
+  }
+  async function onMeSpin() {
+    if (!S.mine || S.saving || S.spinning) return;
+    $("me-spin").disabled = true;
+    const words = wordsFrom(S.mine.dish, S.mine.category || S.mine.leaning);
+    const a = await spinTag($("me-tag"), $("me-alias"), words, S.mine.alias);
+    S.pendingAlias = a;
+    await guarded(async () => {
+      await send("update", record({ alias: a }));
+      say(`You're now ${a}.`);
+    });
+    S.pendingAlias = "";
+    render();
+  }
+  async function onDishSave(e) {
+    e.preventDefault();
+    const dish = $("f-dish").value.trim().slice(0, 60);
+    const category = selectedCat();
+    if (!dish) { say("Add what you're bringing.", "warn"); $("f-dish").focus(); return; }
+    if (!category) { say("Pick a category for your dish.", "warn"); $("cat-apps").focus(); return; }
+    const first = !(S.mine && S.mine.dish);
+    await guarded(async () => {
+      await send("update", record({
+        dish, category,
+        tags: TAG_IDS.filter(t => $("tag-" + t).checked),
+        needs: NEEDS.filter(n => $("need-" + n).checked)
+      }));
+      say(first ? "Dish added. Want an alias that matches it? Tap “Spin a new alias”." : "Dish saved.");
+      if (first) celebrate();
+    });
+  }
+  async function onDishRemove() {
+    if (!S.mine || !S.mine.dish) return;
+    if (!S.removeArmed) {
+      S.removeArmed = true; render();
+      setTimeout(() => { S.removeArmed = false; render(); }, 4000);
+      return;
+    }
+    S.removeArmed = false;
+    await guarded(async () => {
+      await send("update", record({ dish: "", category: "", tags: [], needs: [] }));
+      fillDish(S.mine);
+      say("Dish removed. You're still on the guest list.");
+    });
+  }
+  function onEditRsvp() {
+    if (!S.mine) return;
+    S.editingRsvp = true;
+    $("f-name").value = S.local.realName || "";
+    const p = $("party-" + Math.min(S.mine.party, 3)); if (p) p.checked = true;
+    const l = $("lean-" + (S.mine.leaning || "none")); if (l) l.checked = true;
+    setRsvpAlias(S.mine.alias, false);
+    say("");
+    render();
+    $("rsvp-form").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+  }
+  function onRejoin() {
+    S.editingRsvp = true;
+    $("f-name").value = S.local.realName || "";
+    setRsvpAlias(S.mine && S.mine.alias && S.mine.alias !== "Mystery Guest" ? S.mine.alias : pickAlias(wordsFrom("", leaning())), false);
+    say("");
+    render();
+  }
+  async function onCopyLink() {
+    const link = myLink();
+    try {
+      await navigator.clipboard.writeText(link);
+      $("copy-status").textContent = "Copied. Save it in your notes.";
+      $("link-fallback").hidden = true;
+    } catch (e) {
+      const f = $("link-fallback");
+      f.value = link; f.hidden = false; f.focus(); f.select();
+      $("copy-status").textContent = "Copy the link below.";
+    }
+  }
+  function celebrate() {
+    if (REDUCED || typeof window.confetti !== "function") return;
+    try {
+      window.confetti({ particleCount: 150, spread: 80, startVelocity: 42, origin: { y: 0.75 },
+        colors: ["#FF3D8B", "#FF6B1A", "#11A69B", "#FFC629", "#8B3DFF", "#2F7CF6"] });
+    } catch (e) { /* decoration only */ }
+  }
+
+  // ---------- refresh ----------
   async function refresh() {
     if (!API) return;
     const my = ++S.gen;
     try {
       const res = await apiGet();
       if (my !== S.gen) return;
-      if (!res || !res.ok || !Array.isArray(res.dishes)) throw new Error("bad response");
-      S.dishes = res.dishes.map(d => normalize(String((d && d.id) || ""), d)).filter(d => d.id);
+      if (!res || !res.ok) throw new Error("bad response");
+      S.serverOld = res.v !== SERVER_VERSION;
+      const list = Array.isArray(res.guests) ? res.guests : (Array.isArray(res.dishes) ? res.dishes : []);
+      S.guests = list.map(normalize).filter(g => g.id);
       S.boardLoaded = true;
       setStatus($("board-status"), "");
-      S.mine = S.local.id ? (S.dishes.find(d => d.id === S.local.id) || null) : null;
+      S.mine = S.local.id ? (S.guests.find(g => g.id === S.local.id) || null) : null;
       if (S.local.id && !S.mine && my > S.writeGen) forgetEntry();
-      if (S.mine && !S.prefilled && !$("f-dish").value) { S.prefilled = true; fillForm(S.mine); }
-      renderAll();
+      if (S.mine && !S.prefilled) { S.prefilled = true; fillDish(S.mine); }
+      render();
     } catch (e) {
       if (my !== S.gen) return;
       setStatus($("board-status"), S.boardLoaded
@@ -816,162 +1024,132 @@ footer .big { font-family: var(--font-display); font-size: 1.1rem; }
     }
   }
 
-  async function onSubmit(e) {
-    e.preventDefault();
-    if (S.saving || S.readOnly || S.spinning) return;
-    const v = readForm();
-    const status = $("form-status");
-    if (!v.realName) { setStatus(status, "Add your real name so Natesh knows who's who.", "warn"); $("f-name").focus(); return; }
-    if (!v.dish) { setStatus(status, "Add what you're bringing.", "warn"); $("f-dish").focus(); return; }
-    if (!v.category) { setStatus(status, "Pick a category.", "warn"); $("cat-apps").focus(); return; }
-    if (!S.alias || takenAliases().has(S.alias.toLowerCase())) { setStatus(status, "Someone already has that alias. Spin again.", "warn"); return; }
-
-    clearTimeout(dishTimer);
-    S.aliasTouched = true;
-    const alias = S.alias;
-    const isUpdate = !!(S.mine && S.local.id && S.local.key);
-    const body = Object.assign({
-      action: isUpdate ? "update" : "add",
-      alias,
-      website: $("website").value
-    }, v);
-    if (isUpdate) { body.id = S.local.id; body.key = S.local.key; }
-
-    S.saving = true; renderFormMode();
-    try {
-      const res = await apiPost(body);
-      if (!res || !res.ok) {
-        if (res && res.error === "not_found") forgetEntry();
-        setStatus(status, apiErrorText(res && res.error), "warn");
-        return;
-      }
-      S.local = { id: res.id, key: res.key, address: res.address, realName: v.realName };
-      saveLocal();
-      S.writeGen = S.gen + 1;
-      showAddress(res.address);
-      const entry = normalize(res.id, Object.assign({}, v, { alias, createdAt: new Date().toISOString() }));
-      S.dishes = S.dishes.filter(d => d.id !== res.id).concat(entry);
-      S.mine = entry;
-      S.boardLoaded = true;
-      renderAll();
-      const place = typeof res.address === "string" ? res.address.split(", San Francisco")[0] : "";
-      setStatus(status, isUpdate
-        ? "Saved."
-        : `You're on the board as ${alias}. See you at ${place || "Natesh's"} at 6 PM.`);
-      if (!isUpdate) celebrate();
-      refresh();
-    } catch (err) {
-      setStatus(status, "That didn't save. Check your connection and try again.", "warn");
-    } finally {
-      S.saving = false; renderFormMode();
-    }
-  }
-
-  async function onRemoveMine() {
-    if (!S.mine || S.saving) return;
-    if (!S.removeArmed) {
-      S.removeArmed = true; renderFormMode();
-      setTimeout(() => { S.removeArmed = false; renderFormMode(); }, 4000);
-      return;
-    }
-    S.removeArmed = false; S.saving = true; renderFormMode();
-    try {
-      const res = await apiPost({ action: "remove", id: S.local.id, key: S.local.key });
-      if (res && (res.ok || res.error === "not_found")) {
-        const id = S.local.id;
-        forgetEntry();
-        S.writeGen = S.gen + 1;
-        S.dishes = S.dishes.filter(d => d.id !== id);
-        resetForm();
-        renderAll();
-        setStatus($("form-status"), "Your dish is off the board.");
-        refresh();
-      } else {
-        setStatus($("form-status"), apiErrorText(res && res.error), "warn");
-      }
-    } catch (err) {
-      setStatus($("form-status"), "That didn't go through. Check your connection and try again.", "warn");
-    } finally {
-      S.saving = false; renderFormMode();
-    }
-  }
-
   // ---------- rendering ----------
-  function byCategory(list) {
-    const groups = {};
-    CAT_IDS.forEach(c => { groups[c] = []; });
-    list.forEach(d => groups[d.category].push(d));
-    CAT_IDS.forEach(c => groups[c].sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || "")));
-    return groups;
+  function people() { return going().reduce((n, d) => n + d.party, 0); }
+  function sortGuests(list) {
+    const rank = g => (g.dish ? CAT_IDS.indexOf(g.category) : 100);
+    return list.slice().sort((a, b) => rank(a) - rank(b) || (a.createdAt || "").localeCompare(b.createdAt || ""));
   }
-  function people() { return S.dishes.reduce((n, d) => n + d.party, 0); }
-  function renderStats() {
-    if (!S.boardLoaded) { $("stats").textContent = ""; return; }
-    const d = S.dishes.length, p = people();
-    $("stats").textContent = `${d} ${d === 1 ? "dish" : "dishes"} · ${p} coming`;
-  }
-  function entryChips(d) {
-    const chips = [];
-    if (S.local.id && d.id === S.local.id) chips.push(h("span", { class: "chip you", text: "You" }));
-    if (d.party > 1) chips.push(h("span", { class: "chip", text: `+${d.party - 1}` }));
-    d.tags.forEach(t => chips.push(h("span", { class: t === "meat" || t === "egg" ? "chip nonveg" : "chip", text: TAGS[t] })));
-    return chips;
+  function chips(d) {
+    const out = [];
+    if (S.local.id && d.id === S.local.id) out.push(h("span", { class: "chip you", text: "You" }));
+    if (d.party > 1) out.push(h("span", { class: "chip", text: `+${d.party - 1}` }));
+    d.tags.forEach(t => out.push(h("span", { class: t === "meat" || t === "egg" ? "chip nonveg" : "chip", text: TAGS[t] })));
+    return out;
   }
   function sticker(d) {
-    return h("article", { class: "sticker", style: `--r:${tilt(d.id)};--c:var(--c-${d.category})` },
+    const color = catColor(d.category || d.leaning);
+    const label = d.dish ? CAT_LABEL[d.category] : (d.leaning ? `Leaning ${CAT_LABEL[d.leaning].toLowerCase()}` : "No dish yet");
+    return h("article", { class: "sticker", style: `--r:${tilt(d.id)};--c:${color}` },
       h("div", { class: "nametag" },
         h("div", { class: "band", "aria-hidden": "true" },
           h("span", { class: "hello", text: "HELLO" }), h("span", { class: "mni", text: "my name is" })),
         h("div", { class: "alias", text: d.alias })),
       h("div", { class: "bring" },
-        h("span", { class: "lbl", text: CAT_LABEL[d.category] }),
-        h("p", { class: "dish", text: d.dish }),
-        h("p", { class: "meta" }, entryChips(d))));
+        h("span", { class: "lbl", text: label }),
+        h("p", { class: d.dish ? "dish" : "dish undecided", text: d.dish || "Still deciding" }),
+        h("p", { class: "meta" }, chips(d))));
   }
   function renderBoard() {
-    if (!S.boardLoaded) return;
-    if (!S.dishes.length) {
+    if (!S.boardLoaded) { $("stats").textContent = ""; return; }
+    const list = going();
+    const dishes = list.filter(g => g.dish).length;
+    const p = people();
+    $("stats").textContent = `${p} coming · ${dishes} ${dishes === 1 ? "dish" : "dishes"}`;
+    if (!list.length) {
       $("board").replaceChildren(h("p", { class: "empty-board", text: "Nobody's on the board yet. Be the first." }));
       return;
     }
-    const groups = byCategory(S.dishes);
-    $("board").replaceChildren(h("div", { class: "board-grid" }, CAT_IDS.flatMap(c => groups[c]).map(sticker)));
+    $("board").replaceChildren(h("div", { class: "board-grid" }, sortGuests(list).map(sticker)));
   }
-  function renderAll() { renderStats(); renderBoard(); renderFormMode(); }
+  function renderSignup() {
+    const me = S.mine;
+    const state = S.editingRsvp ? "rsvp" : (!me ? "rsvp" : (me.status === "no" ? "declined" : "going"));
+    $("rsvp-form").hidden = state !== "rsvp";
+    $("me-card").hidden = state !== "going";
+    $("dish-form").hidden = state !== "going";
+    $("declined-card").hidden = state !== "declined";
+    $("rsvp-intro").textContent = state === "going"
+      ? "You're on the list. Add your dish whenever you've decided."
+      : "Tell us you're coming now. Add your dish whenever you've decided.";
+
+    const locked = S.saving || S.serverOld;
+    $("rsvp-fs").disabled = locked;
+    $("dish-fs").disabled = locked;
+    $("rsvp-yes").textContent = S.saving ? "Saving..." : (me && me.status === "yes" ? "Update RSVP" : "I'm in");
+    $("rsvp-no").textContent = me && me.status === "yes" ? "I can't make it anymore" : "Can't make it";
+    $("alias-tag").style.setProperty("--c", catColor(leaning()));
+
+    if (state === "going") {
+      if (!S.spinning) $("me-alias").textContent = S.pendingAlias || me.alias;
+      $("me-tag").style.setProperty("--c", catColor(me.category || me.leaning));
+      const parts = [me.party === 1 ? "Just you" : `You + ${me.party - 1}`];
+      if (me.dish) parts.push(`bringing ${me.dish}`);
+      else if (me.leaning) parts.push(`leaning ${CAT_LABEL[me.leaning].toLowerCase()}`);
+      $("me-party").textContent = parts.join(" · ");
+      $("me-spin").disabled = locked || S.spinning;
+      $("me-edit").disabled = locked;
+      $("dish-h").textContent = me.dish ? "Your dish" : "Add your dish";
+      $("dish-save").textContent = S.saving ? "Saving..." : (me.dish ? "Save changes" : "Add my dish");
+      $("dish-remove").hidden = !me.dish;
+      $("dish-remove").textContent = S.removeArmed ? "Tap again to remove" : "Remove my dish";
+    }
+    if (S.serverOld) say("Sign-ups are getting an update. Try again in a few minutes.", "warn");
+  }
+  function render() { renderBoard(); renderSignup(); }
+
+  // ---------- personal link ----------
+  async function adoptLink() {
+    const m = /^#me=([A-Za-z0-9]+)\.([A-Za-z0-9-]+)$/.exec(location.hash || "");
+    if (!m) return;
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
+    try {
+      const res = await apiPost({ action: "me", id: m[1], key: m[2] });
+      if (!res || !res.ok || !res.me) { say("That link doesn't match an RSVP anymore. RSVP again below.", "warn"); return; }
+      S.local = { id: m[1], key: m[2], address: res.address || "", realName: str(res.me.realName, 40) };
+      saveLocal();
+      if (res.address) showAddress(res.address);
+      S.mine = normalize(res.me);
+      S.prefilled = true;
+      fillDish(S.mine);
+      say(`Welcome back, ${S.mine.alias}.`);
+    } catch (e) {
+      say("Couldn't open your RSVP from that link. Check your connection and refresh.", "warn");
+    }
+  }
 
   // ---------- events ----------
-  $("f-dish").addEventListener("input", () => {
-    clearTimeout(dishTimer);
-    dishTimer = setTimeout(() => { if (!S.aliasTouched && !S.spinning && !S.saving) setAlias(pickAlias(), true); }, 350);
+  $("rsvp-form").addEventListener("submit", onRsvpYes);
+  $("rsvp-no").addEventListener("click", onRsvpNo);
+  $("spin").addEventListener("click", onSpinRsvp);
+  $("f-lean").addEventListener("change", () => {
+    $("alias-tag").style.setProperty("--c", catColor(leaning()));
+    if (!(S.mine && S.editingRsvp)) setRsvpAlias(pickAlias(wordsFrom("", leaning()), S.rsvpAlias), true);
   });
-  $("f-cats").addEventListener("change", () => {
-    paintAliasColor();
-    if (!S.aliasTouched && !$("f-dish").value.trim()) setAlias(pickAlias(), true);
-  });
+  $("me-spin").addEventListener("click", onMeSpin);
+  $("me-edit").addEventListener("click", onEditRsvp);
+  $("copy-link").addEventListener("click", onCopyLink);
+  $("dish-form").addEventListener("submit", onDishSave);
+  $("dish-remove").addEventListener("click", onDishRemove);
+  $("rejoin").addEventListener("click", onRejoin);
   TAG_IDS.forEach(t => $("tag-" + t).addEventListener("change", ev => {
     if (ev.target.checked) $("tag-" + OPPOSITE[t]).checked = false;
   }));
-  $("spin").addEventListener("click", spin);
-  $("remove").addEventListener("click", onRemoveMine);
-  form.addEventListener("submit", onSubmit);
-  form.addEventListener("reset", () => setStatus($("form-status"), ""));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
 
   // ---------- start ----------
-  $("countdown").textContent = countdownText();
-  setInterval(() => { $("countdown").textContent = countdownText(); }, 60000);
-  if (S.local.realName) $("f-name").value = str(S.local.realName, 40);
-  if (S.local.address) showAddress(S.local.address);
-  setAlias(pickAlias(), false);
-  paintAliasColor();
-  renderAll();
-  if (!API) {
-    setStatus($("board-status"), "The board opens soon.", "warn");
-    setReadOnly("Sign-ups open soon.");
-  } else {
+  (async () => {
+    $("countdown").textContent = countdownText();
+    setInterval(() => { $("countdown").textContent = countdownText(); }, 60000);
+    if (S.local.realName) $("f-name").value = str(S.local.realName, 40);
+    if (S.local.address) showAddress(S.local.address);
+    setRsvpAlias(pickAlias(wordsFrom("", "")), false);
+    render();
+    await adoptLink();
+    render();
     refresh();
     setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 30000);
-  }
+  })();
 })();
 </script>
 </body>
