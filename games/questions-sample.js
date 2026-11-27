@@ -57,6 +57,7 @@ window.FG_SAMPLE = {
   ],
 
   tunes: [
+    { id: "s3-n-0", level: "easy", q: "Item number", a: "Chikni Chameli", src: "Agneepath", year: "2012" },
     { id: "s3-n-1", level: "medium", q: "Item number", a: "Munni Badnaam Hui", src: "Dabangg", year: "2010" },
     { id: "s3-n-2", level: "hard", q: "90s indie-pop", a: "Bolo Ta Ra Ra", src: "Daler Mehndi", year: "1995" }
   ]

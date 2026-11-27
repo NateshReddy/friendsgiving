@@ -505,7 +505,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
     { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The start of a famous line. The team on turn has 10 seconds to finish it." },
     { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The first 10 seconds of a song play. The team on turn has 10 seconds to name it." }
   ];
-  const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
+  const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };       // This or That
+  const CARD_POINTS = { easy: 100, medium: 300, hard: 500 };        // Lost in Translation, Finish the Dialogue, Name the Tune
   const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
   const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -680,7 +681,11 @@ td.best::after { content: " \2605"; color: var(--teal); }
   }
   function gameQs(game) { return game === "jeopardy" ? jeopardyQs() : listQs(game); }
   function qById(game, id) { return gameQs(game).find(q => q.id === id); }
-  function pointsFor(game, q) { return game === "jeopardy" ? q.value : (LEVEL_POINTS[q.level] || 100); }
+  function pointsFor(game, q) {
+    if (game === "jeopardy") return q.value;
+    if (game === "thisthat") return LEVEL_POINTS[q.level] || 100;
+    return CARD_POINTS[q.level] || 100;
+  }
   // Points as played: the shot tile is worth double when the team takes the shots.
   function livePoints(game, q) {
     const p = pointsFor(game, q);
