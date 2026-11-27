@@ -422,8 +422,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
 @keyframes drinkpop { from { transform: scale(0.55) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
 .shotcard {
-  display: grid; gap: 16px; justify-items: center; text-align: center;
-  padding: 30px 28px;
+  display: grid; gap: 12px; justify-items: center; text-align: center;
+  padding: 22px 28px 24px;
   background: var(--ink); color: var(--paper);
   border: 4px solid var(--ink); border-radius: 26px;
   box-shadow: 8px 8px 0 var(--pink);
@@ -431,13 +431,15 @@ td.best::after { content: " \2605"; color: var(--teal); }
 }
 .shotcard .kick { font-family: var(--font-display); font-size: 1.1rem; text-transform: uppercase; color: var(--paper); }
 .shotcard .shot-h {
-  font-family: var(--font-display); font-size: clamp(3.6rem, 9vw, 6.4rem); line-height: 0.95;
+  font-family: var(--font-display); font-size: clamp(3.2rem, 8vw, 5.6rem); line-height: 0.95;
   color: var(--wall); text-transform: uppercase;
   text-shadow: 6px 6px 0 var(--pink);
   transform: rotate(-2deg);
 }
 .shotcard .line { margin: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 800; line-height: 1.25; max-width: 820px; }
 .shotcard .who { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--wall); }
+.shotcard.must { box-shadow: 8px 8px 0 var(--red); }
+.shotcard .again { margin: 0; padding: 10px 18px; border: 3px dashed var(--wall); border-radius: 16px; font-size: 1.25rem; font-weight: 800; color: var(--wall); max-width: 760px; }
 .shotcard .note { margin: 0; font-size: 1.1rem; font-weight: 600; color: #E9DCEB; }
 .shotcard .drink-chip { color: var(--ink); }
 .shotcard .row { justify-content: center; }
@@ -541,16 +543,18 @@ td.best::after { content: " \2605"; color: var(--teal); }
       feedback: {},
       notes: "",
       drinks: true,      // drinking rules on
-      shotTile: null,    // jeopardy qid of the hidden shot tile
+      shotTiles: null,   // jeopardy qid -> "choice" (shots or pass) | "must" (shots, no pass)
       shotChoice: {},    // qid -> "take" | "pass"
+      shotBy: {},        // qid -> team index that opened it
       timedOut: {},      // qid -> true once the clock ran out
       lastShot: {}       // game -> true once the last-place shot was called
     };
   }
   function withDrinkDefaults(v) {
     if (!("drinks" in v)) v.drinks = true;
-    if (!("shotTile" in v)) v.shotTile = null;
+    if (!v.shotTiles) v.shotTiles = null;
     v.shotChoice = v.shotChoice || {};
+    v.shotBy = v.shotBy || {};
     v.timedOut = v.timedOut || {};
     v.lastShot = v.lastShot || {};
     return v;
@@ -683,16 +687,38 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return game === "jeopardy" && S.shotChoice[q.id] === "take" ? p * 2 : p;
   }
   // One hidden Jeopardy tile, picked at random the first time the board is needed. Never the lowest row.
-  function shotTileId() {
-    if (S.shotTile && qById("jeopardy", S.shotTile)) return S.shotTile;
-    const pool = jeopardyQs().filter(q => q.ri > 0);
-    const all = pool.length ? pool : jeopardyQs();
-    if (!all.length) return null;
-    S.shotTile = all[Math.floor(Math.random() * all.length)].id;
+  // Four hidden shot tiles, one per category, never in the lowest row: two let the team pass, two are must-drink.
+  // Picked at random the first time the board is drawn.
+  function shotTiles() {
+    const ids = S.shotTiles ? Object.keys(S.shotTiles) : [];
+    if (ids.length && ids.every(id => qById("jeopardy", id))) return S.shotTiles;
+    const qs = jeopardyQs();
+    if (!qs.length) return {};
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const picks = [];
+    [...new Set(qs.map(q => q.ci))].forEach(ci => {
+      const pool = qs.filter(q => q.ci === ci && q.ri > 0);
+      picks.push(pick(pool.length ? pool : qs.filter(q => q.ci === ci)).id);
+    });
+    while (picks.length < 4) {
+      const pool = qs.filter(q => q.ri > 0 && !picks.includes(q.id));
+      if (!pool.length) break;
+      picks.push(pick(pool).id);
+    }
+    for (let i = picks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [picks[i], picks[j]] = [picks[j], picks[i]]; }
+    S.shotTiles = {};
+    picks.slice(0, 4).forEach((id, i) => { S.shotTiles[id] = i < 2 ? "choice" : "must"; });
     save();
-    return S.shotTile;
+    return S.shotTiles;
   }
-  function isShotTile(q) { return !!q && q.id === shotTileId(); }
+  function shotKind(q) { return q ? shotTiles()[q.id] || null : null; }
+  // A must-drink tile can be passed only when the same team already took the other must-drink tile.
+  function shotRepeat(q) {
+    if (shotKind(q) !== "must") return false;
+    const other = Object.keys(S.shotTiles).find(id => id !== q.id && S.shotTiles[id] === "must");
+    return !!other && !!S.shotChoice[other] && S.shotBy[other] === turnTeam("jeopardy");
+  }
+  function shotCanPass(q) { return shotKind(q) === "choice" || shotRepeat(q); }
   function nextOpen(game, from) {
     const qs = gameQs(game);
     for (let k = 1; k <= qs.length; k++) {
@@ -1039,7 +1065,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function viewBoard() {
     const b = bank().jeopardy;
     const cols = b.categories.length;
-    shotTileId();
+    shotTiles();
     let cells = b.categories.map(c => `<div class="cat">${esc(c.name)}</div>`).join("");
     for (let r = 0; r < b.values.length; r++) {
       cells += b.categories.map(c => {
@@ -1066,20 +1092,27 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (!q) { S.openQ = null; return viewBoard(); }
     const done = q.id in S.done;
     // Shot tile: the team decides before they see the question.
-    if (S.drinks && !done && isShotTile(q) && !S.shotChoice[q.id]) {
+    const kind = shotKind(q);
+    if (S.drinks && !done && kind && !S.shotChoice[q.id]) {
       const t = S.teams[turnTeam("jeopardy")];
+      const must = kind === "must", repeat = shotRepeat(q), canPass = shotCanPass(q);
+      const dbl = `<span style="color:var(--wall)">${q.value * 2} points</span>`;
+      const line = must
+        ? `Everyone on the team takes a shot. No passing on this one. You play it for double: ${dbl}.`
+        : `Everyone on the team takes a shot, then you play this one for double: ${dbl}. Or pass and play it for ${q.value}.`;
       return `<div class="qview">
         <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
           <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${levelChip(q, q.value)}</div></div>
-        <div class="shotcard">
-          <div class="kick">You found the</div>
+        <div class="shotcard${must ? " must" : ""}">
+          <div class="kick">${must ? "No escape. You found a" : "You found a"}</div>
           <div class="shot-h">Shot tile</div>
           ${teamChip(t)}
-          <p class="line">Everyone on the team takes a shot, then you play this one for double: <span style="color:var(--wall)">${q.value * 2} points</span>. Or pass and play it for ${q.value}.</p>
+          <p class="line">${line}</p>
+          ${repeat ? `<p class="again">You already took the last no-passing tile, so this time you're allowed to pass and play it for ${q.value}.</p>` : ""}
           ${t.members.length ? `<p class="who">${membersLine(t)}</p>` : ""}
           <p class="note">Not drinking? A teammate takes an extra shot for you.</p>
           <div class="row"><button class="btn big pink" data-act="shot" data-id="${q.id}" data-v="take">Shots done, play for ${q.value * 2}</button>
-            <button class="btn big" data-act="shot" data-id="${q.id}" data-v="pass">Pass, play for ${q.value}</button></div>
+            ${canPass ? `<button class="btn big" data-act="shot" data-id="${q.id}" data-v="pass">Pass, play for ${q.value}</button>` : ""}</div>
         </div>
       </div>`;
     }
@@ -1205,7 +1238,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   // ---------- Spotify ----------
   // Name the Tune plays intros through the Spotify app on the iPad (Spotify Connect), remote-controlled with the
   // Web API. Login uses PKCE, so there is no secret in this page; the Client ID is public by design.
-  const SPOTIFY_CLIENT_ID = "";
+  const SPOTIFY_CLIENT_ID = "4f3b6dd1ad0c45ba98a7bcf798ccbfd7";
   const SP_AUTH_KEY = "fg-spotify-auth";
   const SP_PKCE_KEY = "fg-spotify-pkce";
   const SP_TRACKS_KEY = m => "fg-spotify-tracks-" + m;
@@ -1660,6 +1693,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
       case "shot": {
         const id = b.dataset.id;
         if (id in S.done) return;
+        const sq = qById("jeopardy", id);
+        if (b.dataset.v !== "take" && !shotCanPass(sq)) return;
+        S.shotBy[id] = turnTeam("jeopardy");
         S.shotChoice[id] = b.dataset.v === "take" ? "take" : "pass";
         save();
         if (S.shotChoice[id] === "take") { celebrate(true); toast("Double points"); }
