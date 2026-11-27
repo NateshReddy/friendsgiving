@@ -386,6 +386,72 @@ td.best::after { content: " \2605"; color: var(--teal); }
   border-radius: 999px; font-weight: 800; z-index: 50;
 }
 
+/* ---------- drinking rules ---------- */
+.drink {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--c, var(--wall));
+  display: grid; place-items: center;
+  padding: 24px;
+}
+.drink-in { display: grid; gap: 22px; justify-items: center; text-align: center; max-width: 920px; animation: drinkpop 0.5s cubic-bezier(.2, 1.5, .4, 1); }
+.drink-h {
+  margin: 0;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(5rem, 15vw, 10.5rem); line-height: 0.9;
+  color: #fff; text-transform: uppercase;
+  -webkit-text-stroke: 4px var(--ink);
+  text-shadow: 10px 10px 0 var(--ink);
+  transform: rotate(-3deg);
+}
+.drink-card {
+  display: grid; gap: 12px; justify-items: center;
+  padding: 22px 30px;
+  background: var(--paper);
+  border: 4px solid var(--ink); border-radius: 24px;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+.drink-kicker { font-family: var(--font-display); font-size: 1.15rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.drink-line { margin: 0; font-size: clamp(1.6rem, 3.2vw, 2.3rem); font-weight: 800; line-height: 1.2; }
+.drink-line strong { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; }
+.drink-who { margin: 0; font-size: 1.3rem; font-weight: 700; }
+.drink-sub { margin: 0; font-size: 1.1rem; font-weight: 600; color: #5A4A5E; }
+.drink-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.drink-chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 10px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; font-family: var(--font-display); font-size: 1.05rem; text-transform: uppercase; }
+.drink-chip i { width: 26px; height: 26px; border-radius: 50%; background: var(--c); border: 2.5px solid var(--ink); }
+.drink .btn { min-width: 220px; }
+@keyframes drinkpop { from { transform: scale(0.55) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.shotcard {
+  display: grid; gap: 16px; justify-items: center; text-align: center;
+  padding: 30px 28px;
+  background: var(--ink); color: var(--paper);
+  border: 4px solid var(--ink); border-radius: 26px;
+  box-shadow: 8px 8px 0 var(--pink);
+  animation: drinkpop 0.55s cubic-bezier(.2, 1.5, .4, 1);
+}
+.shotcard .kick { font-family: var(--font-display); font-size: 1.1rem; text-transform: uppercase; color: var(--paper); }
+.shotcard .shot-h {
+  font-family: var(--font-display); font-size: clamp(3.6rem, 9vw, 6.4rem); line-height: 0.95;
+  color: var(--wall); text-transform: uppercase;
+  text-shadow: 6px 6px 0 var(--pink);
+  transform: rotate(-2deg);
+}
+.shotcard .line { margin: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 800; line-height: 1.25; max-width: 820px; }
+.shotcard .who { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--wall); }
+.shotcard .note { margin: 0; font-size: 1.1rem; font-weight: 600; color: #E9DCEB; }
+.shotcard .drink-chip { color: var(--ink); }
+.shotcard .row { justify-content: center; }
+.shotcard .btn:not(.pink) { color: var(--ink); }
+.dbl { background: var(--wall); }
+.tile .shotmark { display: block; margin-top: 4px; font-size: 0.8rem; font-family: var(--font-display); text-transform: uppercase; }
+
+.rulescard { display: grid; gap: 12px; align-content: start; border-top: 16px solid var(--ink); }
+.rulescard h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; text-transform: uppercase; }
+.rulescard.off .rules { opacity: 0.5; }
+.rules { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 1.02rem; }
+.rules li::marker { font-weight: 800; }
+.rules strong { font-weight: 800; }
+
 @media (max-width: 900px) {
   .two-col, .teams-layout, .hub-grid, .modes { grid-template-columns: 1fr; }
   .tt { grid-template-columns: 1fr; }
@@ -400,6 +466,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
 <main id="main"><div class="screen" id="screen"></div></main>
 <footer class="scorebar" id="scorebar" hidden></footer>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="drink" id="drink" role="dialog" aria-modal="true" aria-labelledby="drink-h" hidden></div>
 
 <script src="questions-sample.js"></script>
 <script src="questions-party.js"></script>
@@ -457,8 +524,21 @@ td.best::after { content: " \2605"; color: var(--teal); }
       openQ: null,       // jeopardy question open
       history: [],
       feedback: {},
-      notes: ""
+      notes: "",
+      drinks: true,      // drinking rules on
+      shotTile: null,    // jeopardy qid of the hidden shot tile
+      shotChoice: {},    // qid -> "take" | "pass"
+      timedOut: {},      // qid -> true once the clock ran out
+      lastShot: {}       // game -> true once the last-place shot was called
     };
+  }
+  function withDrinkDefaults(v) {
+    if (!("drinks" in v)) v.drinks = true;
+    if (!("shotTile" in v)) v.shotTile = null;
+    v.shotChoice = v.shotChoice || {};
+    v.timedOut = v.timedOut || {};
+    v.lastShot = v.lastShot || {};
+    return v;
   }
   function save() {
     if (!S) return;
@@ -472,7 +552,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       v.cursor = Object.assign({ literal: 0, thisthat: 0, dialogue: 0, tunes: 0 }, v.cursor || {});
       if (!("tunes" in (v.selected || {}))) v.selected = Object.assign({}, v.selected, { tunes: true });
       v.started = v.started || {};
-      return v;
+      return withDrinkDefaults(v);
     } catch (e) { return null; }
   }
 
@@ -492,6 +572,81 @@ td.best::after { content: " \2605"; color: var(--teal); }
         colors: ["#FF3D8B", "#FF6B1A", "#11A69B", "#FFC629", "#8B3DFF", "#2F7CF6"] });
     } catch (e) { /* decoration only */ }
   }
+  // ---------- drink calls ----------
+  // Full-screen call-outs, queued so a miss and a last-place shot show one after the other.
+  const drinkQ = [];
+  function teamChip(t) { return `<span class="drink-chip" style="--c:${t.color}"><i></i>${esc(t.name)}</span>`; }
+  function membersLine(t) { return t.members.length ? t.members.map(esc).join(", ") : ""; }
+  function drink(o) {
+    if (!S || !S.drinks) return;
+    drinkQ.push(o);
+    if ($("drink").hidden) showDrink();
+    else { const btn = $("drink").querySelector('[data-act="drink-ok"]'); if (btn) btn.textContent = "Next"; }
+  }
+  function showDrink() {
+    const el = $("drink");
+    const o = drinkQ.shift();
+    if (!o) { el.hidden = true; el.innerHTML = ""; return; }
+    el.style.setProperty("--c", o.color || "var(--wall)");
+    el.innerHTML = `<div class="drink-in">
+      <h2 class="drink-h" id="drink-h">${esc(o.title)}</h2>
+      <div class="drink-card">
+        <div class="drink-kicker">${esc(o.kicker)}</div>
+        <p class="drink-line">${o.line}</p>
+        ${o.chips ? `<div class="drink-chips">${o.chips}</div>` : ""}
+        ${o.who ? `<p class="drink-who">${o.who}</p>` : ""}
+        ${o.sub ? `<p class="drink-sub">${esc(o.sub)}</p>` : ""}
+      </div>
+      <button class="btn big ink" data-act="drink-ok">${drinkQ.length ? "Next" : "Cheers"}</button>
+    </div>`;
+    el.hidden = false;
+    const btn = el.querySelector("button"); if (btn) btn.focus({ preventScroll: true });
+  }
+  function clearDrinks() { drinkQ.length = 0; const el = $("drink"); el.hidden = true; el.innerHTML = ""; }
+  function drinkMiss(ti) {
+    const t = S.teams[ti];
+    drink({ color: t.color, title: "Sip!", kicker: "Wrong answer",
+      line: `Whoever answered for <strong>${esc(t.name)}</strong>, take a sip.`,
+      sub: "Not drinking? Sip the mocktail." });
+  }
+  function drinkTimeout(ti) {
+    const t = S.teams[ti];
+    drink({ color: t.color, title: "Team sip!", kicker: "Time's up",
+      line: `<strong>${esc(t.name)}</strong> ran out the clock. The whole team sips.`,
+      who: membersLine(t), sub: "Not drinking? Sip the mocktail." });
+  }
+  function drinkWrongPicks(losers) {
+    if (!losers.length) return;
+    const everyone = losers.length === S.teams.length;
+    drink({ color: losers.length === 1 ? S.teams[losers[0]].color : "var(--wall)",
+      title: everyone ? "All sip!" : "Sip!", kicker: "Wrong pick",
+      line: everyone ? "Every team picked wrong. Everybody sips." : `${losers.length === 1 ? "This team picked" : "These teams picked"} wrong. Take a sip.`,
+      chips: everyone ? "" : losers.map(i => teamChip(S.teams[i])).join(""),
+      sub: "Not drinking? Sip the mocktail." });
+  }
+  // Last place takes a shot when a game ends. Called after every scored question; fires once per game.
+  function checkGameOver(game) {
+    if (!S.drinks || S.lastShot[game]) return;
+    const qs = gameQs(game);
+    if (!qs.length || playedCount(game) < qs.length) return;
+    S.lastShot[game] = true; save();
+    const g = GAMES.find(x => x.id === game);
+    const sc = S.teams.map((t, i) => gameScore(game, i));
+    const min = Math.min(...sc);
+    const losers = S.teams.map((t, i) => i).filter(i => sc[i] === min);
+    if (losers.length === S.teams.length) {
+      drink({ title: "Shots!", kicker: `${g.name} is done`, line: "Everyone tied for last. Everyone takes a shot.",
+        sub: "Not drinking? Have the mocktail." });
+      return;
+    }
+    drink({ color: losers.length === 1 ? S.teams[losers[0]].color : "var(--wall)",
+      title: losers.length === 1 ? "Shot!" : "Shots!", kicker: `${g.name} is done`,
+      line: `Last place with ${min} ${min === 1 ? "point" : "points"}. ${losers.length === 1 ? "Everyone on this team" : "Everyone on these teams"} takes a shot.`,
+      chips: losers.map(i => teamChip(S.teams[i])).join(""),
+      who: losers.length === 1 ? membersLine(S.teams[losers[0]]) : "",
+      sub: "Not drinking? Have the mocktail." });
+  }
+
   const THUMB_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10h4zM7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7"/></svg>';
   const THUMB_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h4v11h-4zM17 14l-4 8a3 3 0 0 1-3-3v-4H4a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 5.4 3H17"/></svg>';
 
@@ -507,6 +662,22 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function gameQs(game) { return game === "jeopardy" ? jeopardyQs() : listQs(game); }
   function qById(game, id) { return gameQs(game).find(q => q.id === id); }
   function pointsFor(game, q) { return game === "jeopardy" ? q.value : (LEVEL_POINTS[q.level] || 100); }
+  // Points as played: the shot tile is worth double when the team takes the shots.
+  function livePoints(game, q) {
+    const p = pointsFor(game, q);
+    return game === "jeopardy" && S.shotChoice[q.id] === "take" ? p * 2 : p;
+  }
+  // One hidden Jeopardy tile, picked at random the first time the board is needed. Never the lowest row.
+  function shotTileId() {
+    if (S.shotTile && qById("jeopardy", S.shotTile)) return S.shotTile;
+    const pool = jeopardyQs().filter(q => q.ri > 0);
+    const all = pool.length ? pool : jeopardyQs();
+    if (!all.length) return null;
+    S.shotTile = all[Math.floor(Math.random() * all.length)].id;
+    save();
+    return S.shotTile;
+  }
+  function isShotTile(q) { return !!q && q.id === shotTileId(); }
   function nextOpen(game, from) {
     const qs = gameQs(game);
     for (let k = 1; k <= qs.length; k++) {
@@ -536,6 +707,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     h.deltas.forEach((d, i) => { S.scores[h.game][i] -= d; });
     delete S.done[h.qid];
     S.revealed[h.qid] = true;
+    delete S.lastShot[h.game];   // game is open again, so its last-place shot can be called again
     if (typeof h.turnBefore === "number") S.turn[h.game] = h.turnBefore;
     if (h.game === "jeopardy") { S.openQ = h.qid; S.screen = "game:jeopardy"; }
     else {
@@ -797,7 +969,22 @@ td.best::after { content: " \2605"; color: var(--teal); }
           <div class="row"><span style="font-weight:800">${played} of ${qs.length} played</span><span class="muted">${leader}</span><span class="spacer"></span>
             <button class="btn ${on ? "pink" : ""}" data-act="go" data-to="game:${g.id}"${on && qs.length ? "" : " disabled"}>${played && played < qs.length ? "Continue" : played === qs.length && qs.length ? "Review" : "Play"}</button></div>
         </div>`;
-      }).join("")}</div>`;
+      }).join("")}${rulesCard()}</div>`;
+  }
+  function rulesCard() {
+    const on = !!S.drinks;
+    return `<div class="card rulescard${on ? "" : " off"}">
+      <div class="row"><h3>Drinking rules</h3><span class="spacer"></span>
+        <button class="toggle" role="switch" aria-checked="${on}" data-act="toggle-drinks"><span>${on ? "On" : "Off"}</span><span class="sw"></span></button></div>
+      <ol class="rules">
+        <li><strong>Wrong answer:</strong> whoever answered takes a sip.</li>
+        <li><strong>Clock runs out:</strong> the whole team sips.</li>
+        <li><strong>This or That:</strong> every team that picks wrong sips.</li>
+        <li><strong>Shot tile:</strong> one Jeopardy tile is hidden. Everyone on the team takes a shot to play it for double, or passes.</li>
+        <li><strong>Last place</strong> after each game: everyone on that team takes a shot.</li>
+      </ol>
+      <p class="muted" style="margin:0">Not drinking? Sip the mocktail. On the shot tile, a teammate takes an extra shot for you.</p>
+    </div>`;
   }
 
   // ---------- shared question bits ----------
@@ -838,6 +1025,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function viewBoard() {
     const b = bank().jeopardy;
     const cols = b.categories.length;
+    shotTileId();
     let cells = b.categories.map(c => `<div class="cat">${esc(c.name)}</div>`).join("");
     for (let r = 0; r < b.values.length; r++) {
       cells += b.categories.map(c => {
@@ -847,7 +1035,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
         if (q.id in S.done) {
           const w = S.done[q.id];
           const col = w >= 0 ? S.teams[w].color : "#9A8F98";
-          return `<button class="tile used" style="--c:${col}" data-act="open" data-id="${q.id}" aria-label="${esc(c.name)} ${val}, played">${w >= 0 ? esc(S.teams[w].name) : "Missed"}</button>`;
+          const mark = S.shotChoice[q.id] ? `<span class="shotmark">Shot tile</span>` : "";
+          return `<button class="tile used" style="--c:${col}" data-act="open" data-id="${q.id}" aria-label="${esc(c.name)} ${val}, played">${w >= 0 ? esc(S.teams[w].name) : "Missed"}${mark}</button>`;
         }
         return `<button class="tile" data-act="open" data-id="${q.id}">${val}</button>`;
       }).join("");
@@ -861,14 +1050,35 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function viewJeopardyQ() {
     const q = qById("jeopardy", S.openQ);
     if (!q) { S.openQ = null; return viewBoard(); }
-    const shown = !!S.revealed[q.id] || q.id in S.done;
+    const done = q.id in S.done;
+    // Shot tile: the team decides before they see the question.
+    if (S.drinks && !done && isShotTile(q) && !S.shotChoice[q.id]) {
+      const t = S.teams[turnTeam("jeopardy")];
+      return `<div class="qview">
+        <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
+          <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${levelChip(q, q.value)}</div></div>
+        <div class="shotcard">
+          <div class="kick">You found the</div>
+          <div class="shot-h">Shot tile</div>
+          ${teamChip(t)}
+          <p class="line">Everyone on the team takes a shot, then you play this one for double: <span style="color:var(--wall)">${q.value * 2} points</span>. Or pass and play it for ${q.value}.</p>
+          ${t.members.length ? `<p class="who">${membersLine(t)}</p>` : ""}
+          <p class="note">Not drinking? A teammate takes an extra shot for you.</p>
+          <div class="row"><button class="btn big pink" data-act="shot" data-id="${q.id}" data-v="take">Shots done, play for ${q.value * 2}</button>
+            <button class="btn big" data-act="shot" data-id="${q.id}" data-v="pass">Pass, play for ${q.value}</button></div>
+        </div>
+      </div>`;
+    }
+    const shown = !!S.revealed[q.id] || done;
+    const pts = livePoints("jeopardy", q);
+    const dbl = S.shotChoice[q.id] === "take";
     return `<div class="qview">
       <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
-        <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${levelChip(q, q.value)}</div></div>
-      ${q.id in S.done ? "" : turnBanner("jeopardy", "is answering")}
+        <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${dbl ? `<span class="chip dbl">Shot tile · double · ${pts}</span>` : levelChip(q, q.value)}</div></div>
+      ${done ? "" : turnBanner("jeopardy", "is answering")}
       <div class="card"><div class="qtext">${esc(q.q)}</div></div>
       ${shown ? `<div class="answer">${esc(q.a)}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
-      ${shown ? `<div class="row" style="align-items:flex-start">${q.id in S.done ? awardButtons("jeopardy", q, q.value) : markButtons("jeopardy", q, q.value)}${feedbackBox(q)}</div>` : ""}
+      ${shown ? `<div class="row" style="align-items:flex-start">${done ? awardButtons("jeopardy", q, pts) : markButtons("jeopardy", q, pts)}${feedbackBox(q)}</div>` : ""}
       ${q.id in S.done ? '<div class="row"><button class="btn big ink" data-act="close-q">Back to board</button></div>' : ""}
     </div>`;
   }
@@ -954,9 +1164,13 @@ td.best::after { content: " \2605"; color: var(--teal); }
       if (ms <= 0) {
         const q = timer.q;
         stopTimer();
-        if (S && q && !(q in S.done)) { S.revealed[q] = true; save(); }
-        toast("Time's up");
-        if (S && ["game:literal", "game:dialogue", "game:tunes"].includes(S.screen)) render();
+        const onCard = S && ["game:literal", "game:dialogue", "game:tunes"].includes(S.screen);
+        if (S && q && !(q in S.done)) {
+          S.revealed[q] = true; S.timedOut[q] = true; save();
+          if (S.drinks && onCard) drinkTimeout(turnTeam(S.screen.slice(5)));
+          else toast("Time's up");
+        } else toast("Time's up");
+        if (onCard) render();
       }
     }, 100);
   }
@@ -1072,11 +1286,13 @@ td.best::after { content: " \2605"; color: var(--teal); }
       toast(ti >= 0 ? `+${pts} ${S.teams[ti].name}` : "Nobody got it");
     }
     if (ti >= 0) celebrate(false);
+    checkGameOver(game);
     render();
   }
   function mark(game, qid, ok) {
     const q = qById(game, qid); if (!q || qid in S.done) return;
-    const pts = pointsFor(game, q);
+    stopTimer();
+    const pts = livePoints(game, q);
     const ti = turnTeam(game);
     const name = S.teams[ti].name;
     const deltas = S.teams.map((t, i) => (ok && i === ti ? pts : 0));
@@ -1087,6 +1303,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
     save();
     toast(ok ? `+${pts} ${name}` : `${name} missed it`);
     if (ok) celebrate(false);
+    else if (!S.timedOut[qid]) drinkMiss(ti);   // a timeout already called the whole-team sip
+    checkGameOver(game);
     render();
   }
 
@@ -1095,7 +1313,17 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (!b || b.disabled) return;
     const a = b.dataset.act;
     switch (a) {
-      case "home": stopTimer(); S = null; render(); break;
+      case "home": stopTimer(); clearDrinks(); S = null; render(); break;
+      case "drink-ok": showDrink(); break;
+      case "toggle-drinks": S.drinks = !S.drinks; if (!S.drinks) clearDrinks(); save(); render(); break;
+      case "shot": {
+        const id = b.dataset.id;
+        if (id in S.done) return;
+        S.shotChoice[id] = b.dataset.v === "take" ? "take" : "pass";
+        save();
+        if (S.shotChoice[id] === "take") { celebrate(true); toast("Double points"); }
+        render(); break;
+      }
       case "new": {
         const m = b.dataset.mode;
         if (m === "party" && !BANKS.party) return;
@@ -1104,9 +1332,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
         if (prev && prev.players) S.players = prev.players.slice();
         save(); render(); break;
       }
-      case "resume": S = load(b.dataset.mode) || fresh(b.dataset.mode); render(); break;
+      case "resume": S = load(b.dataset.mode) || fresh(b.dataset.mode); clearDrinks(); render(); break;
       case "go": go(b.dataset.to); break;
-      case "undo": stopTimer(); undo(); break;
+      case "undo": stopTimer(); clearDrinks(); undo(); break;
       case "rm-player": S.players.splice(Number(b.dataset.i), 1); syncTeamsWithPlayers(); save(); render(); break;
       case "add-player": {
         const n = cleanName($("add-name").value);
@@ -1170,6 +1398,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
         const winners = S.teams.filter((t, i) => deltas[i] > 0).map(t => t.name);
         applyAward("thisthat", q.id, deltas, winners.length ? `${pts} to ${winners.join(", ")}` : "nobody scored");
         if (winners.length) celebrate(false);
+        drinkWrongPicks(S.teams.map((t, i) => i).filter(i => p[i] && p[i] !== q.correct));
+        checkGameOver("thisthat");
         render(); break;
       }
       case "fb": {
@@ -1199,6 +1429,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     } else if (t.id === "fb-notes") { S.notes = t.value.slice(0, 2000); save(); }
   });
   document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("drink").hidden) { e.preventDefault(); showDrink(); return; }
     if (e.key === "Enter" && e.target.id === "add-name") { e.preventDefault(); document.querySelector('[data-act="add-player"]').click(); }
   });
   window.addEventListener("resize", () => { if (S && S.screen === "teams") drawWheel(); });
