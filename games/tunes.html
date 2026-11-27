@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Tune List (Host Only)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Gabarito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: phone-width list for the host. Big numbers that match "Tune #N" on the TV, two play links per row. */
+  --wall: #FFC629;
+  --ink: #26102E;
+  --paper: #FFF8EC;
+  --pink: #FF3D8B;
+  --purple: #8B3DFF;
+  --font-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-body: "Gabarito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wall); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.4; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 18px 16px 40px; display: grid; gap: 16px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; text-transform: uppercase; }
+.warn { margin: 0; padding: 10px 14px; background: var(--ink); color: var(--wall); border-radius: 12px; font-weight: 800; }
+.tabs { display: flex; gap: 8px; }
+.tab { flex: 1; padding: 10px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
+.tab:focus-visible, a:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+li { display: grid; grid-template-columns: 56px 1fr; gap: 4px 12px; padding: 12px; background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--ink); }
+.n { grid-row: 1 / span 3; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--purple); color: #fff; font-family: var(--font-display); font-size: 1.3rem; border: 3px solid var(--ink); }
+.t { font-weight: 800; font-size: 1.15rem; }
+.s { font-size: 0.95rem; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a { padding: 6px 14px; border: 2.5px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); font-weight: 800; text-decoration: none; }
+.empty { padding: 16px; background: var(--paper); border: 3px dashed var(--ink); border-radius: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Name the Tune list</h1>
+  <p class="warn">Host only. Keep this on your phone, not on the TV. Play the first 5 seconds of each tune when the TV shows its number.</p>
+  <div class="tabs" role="group" aria-label="Question set">
+    <button class="tab" id="tab-party" aria-pressed="true">Party night</button>
+    <button class="tab" id="tab-sample" aria-pressed="false">Practice</button>
+  </div>
+  <ol id="list"></ol>
+</main>
+<script src="questions-sample.js"></script>
+<script src="questions-party.js"></script>
+<script>
+(() => {
+  "use strict";
+  function party() {
+    if (window.FG_PARTY) return window.FG_PARTY;
+    try { return window.FG_PARTY_ENC ? JSON.parse(decodeURIComponent(escape(atob(window.FG_PARTY_ENC)))) : null; } catch (e) { return null; }
+  }
+  const sets = { party: party(), sample: window.FG_SAMPLE || null };
+  const list = document.getElementById("list");
+  function show(which) {
+    document.getElementById("tab-party").setAttribute("aria-pressed", String(which === "party"));
+    document.getElementById("tab-sample").setAttribute("aria-pressed", String(which === "sample"));
+    const tunes = sets[which] && Array.isArray(sets[which].tunes) ? sets[which].tunes : [];
+    list.replaceChildren();
+    if (!tunes.length) {
+      const p = document.createElement("li"); p.className = "empty"; p.textContent = "No tunes in this set yet."; list.append(p); return;
+    }
+    tunes.forEach((t, i) => {
+      const li = document.createElement("li");
+      const n = document.createElement("span"); n.className = "n"; n.textContent = i + 1;
+      const title = document.createElement("span"); title.className = "t"; title.textContent = t.a;
+      const sub = document.createElement("span"); sub.className = "s"; sub.textContent = `${t.src}${t.year ? " · " + t.year : ""} · ${t.q}`;
+      const links = document.createElement("span"); links.className = "links";
+      const query = encodeURIComponent(`${t.a} ${t.src}`);
+      [["Spotify", "https://open.spotify.com/search/" + query], ["YouTube", "https://www.youtube.com/results?search_query=" + query]].forEach(([label, href]) => {
+        const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = label; links.append(a);
+      });
+      li.append(n, title, sub, links);
+      list.append(li);
+    });
+  }
+  document.getElementById("tab-party").addEventListener("click", () => show("party"));
+  document.getElementById("tab-sample").addEventListener("click", () => show("sample"));
+  show(sets.party ? "party" : "sample");
+})();
+</script>
+</body>
+</html>

@@ -251,22 +251,22 @@ textarea { min-height: 120px; resize: vertical; }
 .progress > i { display: block; height: 100%; background: var(--c); }
 
 /* ---------- jeopardy ---------- */
-.board { display: grid; gap: 12px; margin-top: 18px; }
+.board { display: grid; gap: 10px; margin-top: 14px; }
 .board .cat {
   display: grid; place-items: center;
-  min-height: 84px; padding: 10px;
+  min-height: 64px; padding: 8px;
   background: var(--ink); color: var(--wall);
   border-radius: 14px;
   font-family: var(--font-display); font-size: 1.05rem; text-align: center; text-transform: uppercase; line-height: 1.1;
 }
 .tile {
-  min-height: 92px;
+  min-height: 72px;
   border: 3px solid var(--ink);
   border-radius: 14px;
   background: var(--paper);
   box-shadow: 4px 4px 0 var(--ink);
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.8rem;
   color: var(--pink);
   cursor: pointer;
 }
@@ -416,9 +416,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
   ];
   const GAMES = [
     { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Teams take turns picking a category and a value. Get it right to score it." },
-    { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "Bollywood titles translated word for word. 10 seconds, and the first team to shout the movie scores." },
+    { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "A Bollywood title translated word for word. The team on turn has 10 seconds to name the movie." },
     { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
-    { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "Teams take turns finishing a famous line. Get it right to score." }
+    { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The start of a famous line. The team on turn has 10 seconds to finish it." },
+    { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The host plays the first 5 seconds of a song. The team on turn has 10 seconds to name it." }
   ];
   const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
   const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
@@ -436,22 +437,22 @@ td.best::after { content: " \2605"; color: var(--teal); }
   const bank = () => BANKS[S.mode];
 
   // ---------- state ----------
-  const KEY = m => "fg-gamenight-v2-" + m;
+  const KEY = m => "fg-gamenight-v3-" + m;
   let S = null;
   function fresh(mode) {
     return {
       mode,
       screen: "players",
       players: DEFAULT_PLAYERS.slice(),
-      teamCount: 3,
-      teams: TEAM_DEFAULTS.slice(0, 3).map(t => ({ name: t.name, color: t.color, members: [] })),
-      selected: { jeopardy: true, literal: true, thisthat: true, dialogue: true },
+      teamCount: 4,
+      teams: TEAM_DEFAULTS.slice(0, 4).map(t => ({ name: t.name, color: t.color, members: [] })),
+      selected: { jeopardy: true, literal: true, thisthat: true, dialogue: true, tunes: true },
       scores: {},
       done: {},          // qid -> team index awarded (-1 = nobody)
       picks: {},         // this-or-that: qid -> [ 'a' | 'b' | null per team ]
       revealed: {},      // qid -> true
-      cursor: { literal: 0, thisthat: 0, dialogue: 0 },
-      turn: { jeopardy: 0, dialogue: 0 },
+      cursor: { literal: 0, thisthat: 0, dialogue: 0, tunes: 0 },
+      turn: { jeopardy: 0, literal: 0, dialogue: 0, tunes: 0 },
       started: {},       // lost in translation: qid -> title shown
       openQ: null,       // jeopardy question open
       history: [],
@@ -467,7 +468,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
     try {
       const v = JSON.parse(localStorage.getItem(KEY(mode)));
       if (!v || v.mode !== mode) return null;
-      v.turn = v.turn || { jeopardy: 0, dialogue: 0 };
+      v.turn = Object.assign({ jeopardy: 0, literal: 0, dialogue: 0, tunes: 0 }, v.turn || {});
+      v.cursor = Object.assign({ literal: 0, thisthat: 0, dialogue: 0, tunes: 0 }, v.cursor || {});
+      if (!("tunes" in (v.selected || {}))) v.selected = Object.assign({}, v.selected, { tunes: true });
       v.started = v.started || {};
       return v;
     } catch (e) { return null; }
@@ -556,7 +559,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     else if (sc === "teams") { el.innerHTML = viewTeams(); drawWheel(); }
     else if (sc === "hub") el.innerHTML = viewHub();
     else if (sc === "game:jeopardy") el.innerHTML = S.openQ ? viewJeopardyQ() : viewBoard();
-    else if (sc === "game:literal" || sc === "game:dialogue") el.innerHTML = viewCardGame(sc.slice(5));
+    else if (sc === "game:literal" || sc === "game:dialogue" || sc === "game:tunes") el.innerHTML = viewCardGame(sc.slice(5));
     else if (sc === "game:thisthat") el.innerHTML = viewThisThat();
     else if (sc === "results") el.innerHTML = viewResults();
     else if (sc === "feedback") el.innerHTML = viewFeedback();
@@ -871,9 +874,15 @@ td.best::after { content: " \2605"; color: var(--teal); }
   }
 
   // ---------- literal + dialogue ----------
+  const CARD_TEXT = {
+    literal: { prompt: "Which Bollywood movie is this?", ready: "The title shows with a 10 second timer.", start: "Show title and start" },
+    dialogue: { prompt: "Finish the line", ready: "The line shows with a 10 second timer.", start: "Show line and start" },
+    tunes: { prompt: "Name the song", ready: "", start: "Start 10 seconds" }
+  };
   function viewCardGame(game) {
     const qs = gameQs(game);
     const g = GAMES.find(x => x.id === game);
+    const txt = CARD_TEXT[game];
     if (!qs.length) return `<p>No questions here yet.</p>`;
     let i = Math.min(Math.max(0, S.cursor[game] || 0), qs.length - 1);
     const q = qs[i];
@@ -881,41 +890,47 @@ td.best::after { content: " \2605"; color: var(--teal); }
     const done = q.id in S.done;
     const shown = !!S.revealed[q.id] || done;
     const allDone = playedCount(game) === qs.length;
-    const isLit = game === "literal";
-    const prompt = isLit ? "Which Bollywood movie is this?" : "Finish the line";
-    const answer = isLit ? esc(q.a) : `${esc(q.a)}<small>${esc(q.film)}</small>`;
+    const isTune = game === "tunes";
+    const label = isTune ? `Tune #${i + 1}` : `${i + 1} of ${qs.length}`;
     const head = `<div class="row"><h1 class="h-display" style="font-size:2rem">${g.name}</h1><span class="spacer"></span>
-        <span style="font-weight:800">${i + 1} of ${qs.length}</span>${levelChip(q, pts)}
+        <span style="font-weight:800">${label}</span>${levelChip(q, pts)}
         <button class="btn small" data-act="go" data-to="hub">All games</button></div>`;
     const nav = `<div class="row"><button class="btn small" data-act="step" data-g="${game}" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>
         <span class="spacer"></span>
         ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn small" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${done ? "Next question" : "Skip for now"}</button>`}</div>`;
+    const banner = done ? "" : turnBanner(game, "is up");
 
-    // Lost in Translation: title stays hidden until the timer starts.
-    if (isLit && !shown && !S.started[q.id]) {
-      return `<div class="qview">${head}
+    if (!shown && !S.started[q.id]) {
+      const readyText = isTune
+        ? `Host: play the first 5 seconds of <strong>tune #${i + 1}</strong> from your list, then start the timer.`
+        : txt.ready;
+      return `<div class="qview">${head}${banner}
         <div class="card ready" style="border-top:14px solid ${g.color}">
-          <div class="h-display" style="font-size:1.6rem">Get ready</div>
-          <p class="lead" style="margin:0">The title shows with a 10 second timer. First team to shout the movie wins ${pts}.</p>
-          <button class="btn big pink" data-act="lit-start" data-id="${q.id}">Show title and start</button>
+          <div class="h-display" style="font-size:1.6rem">${isTune ? esc(q.q) : "Get ready"}</div>
+          <p class="lead" style="margin:0">${readyText} Worth ${pts}.</p>
+          <button class="btn big pink" data-act="lit-start" data-id="${q.id}">${txt.start}</button>
         </div>${nav}</div>`;
     }
     let timerHtml = "";
-    if (isLit && !shown) {
+    if (!shown) {
       const running = timer.q === q.id;
       const left = running ? Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)) : 0;
-      const pct = running ? Math.max(0, (timer.end - Date.now()) / (TIMER_MS) * 100) : 0;
-      timerHtml = `<div class="timerrow"><div class="timer${left <= 3 ? " low" : ""}" id="timer">${running ? left : "–"}</div>
+      const pct = running ? Math.max(0, (timer.end - Date.now()) / TIMER_MS * 100) : 0;
+      timerHtml = `<div class="timerrow"><div class="timer${running && left <= 3 ? " low" : ""}" id="timer">${running ? left : "–"}</div>
         <div class="tbar"><i id="tbar" style="width:${pct}%"></i></div>
         <button class="btn small" data-act="lit-restart" data-id="${q.id}">${running ? "Restart timer" : "Start timer"}</button></div>`;
     }
+    const body = isTune
+      ? `<div class="qtext">${shown ? "" : "Which song is this?"}</div><div class="chip" style="margin-top:10px">${esc(q.q)}</div>`
+      : `<div class="qtext${game === "literal" ? " literal" : ""}">${esc(q.q)}</div>`;
+    const answer = isTune
+      ? `${esc(q.a)}<small>${esc(q.src)}${q.year ? " · " + esc(q.year) : ""}</small>`
+      : game === "dialogue" ? `${esc(q.a)}<small>${esc(q.film)}</small>` : esc(q.a);
     const after = shown
-      ? `<div class="row" style="align-items:flex-start">${isLit ? awardButtons(game, q, pts) : (done ? awardButtons(game, q, pts) : markButtons(game, q, pts))}${feedbackBox(q)}</div>`
+      ? `<div class="row" style="align-items:flex-start">${done ? awardButtons(game, q, pts) : markButtons(game, q, pts)}${feedbackBox(q)}</div>`
       : "";
-    return `<div class="qview">${head}
-      ${!isLit && !done ? turnBanner(game, "is up") : ""}
-      <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${prompt}</div>
-        <div class="qtext${isLit ? " literal" : ""}">${esc(q.q)}</div></div>
+    return `<div class="qview">${head}${banner}
+      <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${txt.prompt}</div>${body}</div>
       ${timerHtml}
       ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
       ${after}
@@ -941,7 +956,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
         stopTimer();
         if (S && q && !(q in S.done)) { S.revealed[q] = true; save(); }
         toast("Time's up");
-        if (S && S.screen === "game:literal") render();
+        if (S && ["game:literal", "game:dialogue", "game:tunes"].includes(S.screen)) render();
       }
     }, 100);
   }
@@ -1011,7 +1026,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function feedbackLines() {
     const all = GAMES.flatMap(g => gameQs(g.id).map(q => ({ g, q })));
     return all.filter(x => S.feedback[x.q.id]).map(x => {
-      const qtxt = x.g.id === "thisthat" ? `${x.q.q} (${x.q.a} vs ${x.q.b})` : x.q.q;
+      const qtxt = x.g.id === "thisthat" ? `${x.q.q} (${x.q.a} vs ${x.q.b})` : x.g.id === "tunes" ? `${x.q.a} (${x.q.q})` : x.q.q;
       return { v: S.feedback[x.q.id], game: x.g.name, level: LEVEL_LABEL[x.q.level], text: qtxt, cat: x.q.cat };
     });
   }

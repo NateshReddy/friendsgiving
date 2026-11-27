@@ -1,38 +1,38 @@
-// Practice set v2: kept small on purpose so the good material is saved for the party set.
+// Practice set v3: kept small on purpose so the good material is saved for the party set.
 window.FG_SAMPLE = {
   jeopardy: {
     values: [100, 200, 300],
     categories: [
       {
-        name: "Bollywood",
+        name: "India GK",
         qs: [
-          { id: "s2-j-bw-1", level: "easy", q: "In which film does Shah Rukh Khan play a hockey coach?", a: "Chak De! India" },
-          { id: "s2-j-bw-2", level: "medium", q: "Who directed Lagaan?", a: "Ashutosh Gowariker" },
-          { id: "s2-j-bw-3", level: "hard", q: "Which song from an Indian film won the Oscar for Best Original Song in 2023?", a: "Naatu Naatu (RRR)" }
+          { id: "s2-j-gk-1", level: "easy", q: "What is the capital of Arunachal Pradesh?", a: "Itanagar" },
+          { id: "s2-j-gk-2", level: "medium", q: "Which state has India\u2019s longest coastline?", a: "Gujarat" },
+          { id: "s2-j-gk-3", level: "hard", q: "Lonar Lake in Maharashtra was formed by what?", a: "A meteorite impact" }
         ]
       },
       {
-        name: "Meme Knowledge",
-        qs: [
-          { id: "s2-j-mm-1", level: "easy", q: "The “Moye Moye” song that took over Indian reels is in which language?", a: "Serbian" },
-          { id: "s2-j-mm-2", level: "medium", q: "Scenes from which film started the “1st day as a spy in Pakistan” memes?", a: "Dhurandhar" },
-          { id: "s2-j-mm-3", level: "hard", q: "Jasmeen Kaur’s “So beautiful, so elegant, just looking like a wow” was a sales pitch for what?", a: "Salwar suits from her Delhi boutique" }
-        ]
-      },
-      {
-        name: "Which State's Dish?",
+        name: "What State's Dish?",
         qs: [
           { id: "s2-j-fd-1", level: "easy", q: "Bisi bele bath comes from which state?", a: "Karnataka" },
-          { id: "s2-j-fd-2", level: "medium", q: "Chhena poda, the “burnt cheese” dessert, comes from which state?", a: "Odisha" },
+          { id: "s2-j-fd-2", level: "medium", q: "Chhena poda, the \u201cburnt cheese\u201d dessert, comes from which state?", a: "Odisha" },
           { id: "s2-j-fd-3", level: "hard", q: "Siddu, a steamed stuffed bread, comes from which state?", a: "Himachal Pradesh" }
         ]
       },
       {
-        name: "India GK",
+        name: "Koffee & Gossip",
         qs: [
-          { id: "s2-j-gk-1", level: "easy", q: "What is the capital of Arunachal Pradesh?", a: "Itanagar" },
-          { id: "s2-j-gk-2", level: "medium", q: "Which state has India’s longest coastline?", a: "Gujarat" },
-          { id: "s2-j-gk-3", level: "hard", q: "Lonar Lake in Maharashtra was formed by what?", a: "A meteorite impact" }
+          { id: "s3-j-kg-1", level: "easy", q: "Which actress married Virat Kohli in Italy in 2017?", a: "Anushka Sharma" },
+          { id: "s3-j-kg-2", level: "medium", q: "Which actress married Nick Jonas in 2018?", a: "Priyanka Chopra" },
+          { id: "s3-j-kg-3", level: "hard", q: "Gauri Khan is best known for which business?", a: "Interior design" }
+        ]
+      },
+      {
+        name: "Mythology & Epics",
+        qs: [
+          { id: "s3-j-my-1", level: "easy", q: "Which brother went into exile with Rama and Sita?", a: "Lakshmana" },
+          { id: "s3-j-my-2", level: "medium", q: "Who taught archery to both the Pandavas and the Kauravas?", a: "Dronacharya" },
+          { id: "s3-j-my-3", level: "hard", q: "In the Mahabharata, who narrates the Kurukshetra war to the blind king Dhritarashtra?", a: "Sanjaya" }
         ]
       }
     ]
@@ -54,5 +54,10 @@ window.FG_SAMPLE = {
     { id: "s2-d-1", level: "easy", q: "Don ko pakadna mushkil hi nahi…", a: "…naamumkin hai.", film: "Don" },
     { id: "s2-d-2", level: "medium", q: "Tension lene ka nahi…", a: "…sirf dene ka.", film: "Munna Bhai M.B.B.S." },
     { id: "s2-d-3", level: "hard", q: "Ek chutki sindoor ki keemat…", a: "…tum kya jaano Ramesh babu.", film: "Om Shanti Om" }
+  ],
+
+  tunes: [
+    { id: "s3-n-1", level: "medium", q: "Item number", a: "Munni Badnaam Hui", src: "Dabangg", year: "2010" },
+    { id: "s3-n-2", level: "hard", q: "90s indie-pop", a: "Bolo Ta Ra Ra", src: "Daler Mehndi", year: "1995" }
   ]
 };
