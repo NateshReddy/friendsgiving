@@ -1340,15 +1340,28 @@ td.best::after { content: " \2605"; color: var(--teal); }
   const SP_NO_DEVICE = "Spotify isn't showing up as a speaker. On the iPad, open the Spotify app and start playing any song (leave it playing), then come back and try again. The game takes over from there.";
   // Devices: the Spotify app on the iPad (or a phone or speaker) that actually plays the sound.
   let spDeviceList = [], spDevAt = 0, spDevMsg = "", spUser = "";
+  // Only phones, tablets and computers: no Alexa/Echo speakers or "Everywhere" groups.
   async function spDevices() {
     const j = await spApi("GET", "/me/player/devices");
-    spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted);
+    spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted
+      && /^(tablet|smartphone|computer)$/i.test(d.type || "") && !/alexa|echo|everywhere/i.test(d.name || ""));
     spDevAt = Date.now();
     return spDeviceList;
   }
+  // The kind of device this page is open on. iPads report themselves as a Mac, so check for touch too.
+  function thisDeviceType() {
+    const ua = navigator.userAgent || "";
+    if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "tablet";
+    if (/iPhone|iPod|Android.+Mobile/.test(ua)) return "smartphone";
+    if (/Android/.test(ua)) return "tablet";
+    return "computer";
+  }
+  // A device picked by hand wins; otherwise the one this game is running on.
   function spPickDevice(list) {
-    const saved = spAuth().device;
-    return list.find(d => d.id === saved) || list.find(d => d.is_active) || list.find(d => /tablet/i.test(d.type)) || list.find(d => /smartphone/i.test(d.type)) || list[0] || null;
+    const a = spAuth(), me = thisDeviceType();
+    const same = list.filter(d => (d.type || "").toLowerCase() === me);
+    return (a.picked && list.find(d => d.id === a.device)) || same.find(d => d.is_active) || same[0]
+      || list.find(d => d.is_active) || list[0] || null;
   }
 
   // Finding each tune on Spotify: search title + film/artist, prefer the original over remixes and covers.
@@ -1802,7 +1815,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     }
   });
   document.addEventListener("change", e => {
-    if (e.target.id === "sp-device") { spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: e.target.value })); toast("Spotify will play on " + e.target.selectedOptions[0].textContent); }
+    if (e.target.id === "sp-device") { spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: e.target.value, picked: true })); toast("Spotify will play on " + e.target.selectedOptions[0].textContent); }
   });
   document.addEventListener("input", e => {
     const t = e.target;
