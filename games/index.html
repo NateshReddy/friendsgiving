@@ -1520,19 +1520,16 @@ td.best::after { content: " \2605"; color: var(--teal); }
     const out = $("sp-check-out");
     const qs = gameQs("tunes");
     if (out) out.textContent = "Checking " + qs.length + " songs…";
-    const lines = []; let found = 0;
+    const missing = [];
     for (let i = 0; i < qs.length; i++) {
-      try {
-        const t = await spResolve(qs[i]);
-        found++;
-        lines.push(S.mode === "party" ? `#${i + 1} found` : `#${i + 1} ${esc(qs[i].a)}: ${esc(t.name)} · ${esc(t.artist)}`);
-      } catch (e) {
+      try { await spResolve(qs[i]); }
+      catch (e) {
         if (e.code !== "notfound") { const o = $("sp-check-out"); if (o) o.innerHTML = `<span class="sperr" style="display:block">${esc(e.message)}</span>`; return; }
-        lines.push(`#${i + 1} not found, play it from your phone`);
+        missing.push("#" + (i + 1));
       }
     }
     const o = $("sp-check-out");
-    if (o) o.innerHTML = `<strong>Found ${found} of ${qs.length}.</strong><br>${lines.join("<br>")}`;
+    if (o) o.innerHTML = `<strong>Found ${qs.length - missing.length} of ${qs.length}.</strong>${missing.length ? ` Play tune ${missing.join(", ")} from your phone.` : ""}`;
   }
 
   // ---------- this or that ----------
