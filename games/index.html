@@ -1327,16 +1327,19 @@ td.best::after { content: " \2605"; color: var(--teal); }
     let j = null; try { j = text ? JSON.parse(text) : null; } catch (e) { /* empty body */ }
     if (!r.ok) {
       const er = (j && j.error) || {};
-      if (r.status === 404 || er.reason === "NO_ACTIVE_DEVICE") throw spErr("device", "Spotify isn't ready. Open the Spotify app on the iPad, play any song for a second, then come back and try again");
-      if (r.status === 403) throw spErr("premium", er.message || "Spotify said no. This needs Spotify Premium");
+      const raw = (er.message || text || "").toString().slice(0, 160);
+      if (r.status === 404 || er.reason === "NO_ACTIVE_DEVICE") throw spErr("device", SP_NO_DEVICE);
+      if (r.status === 403 && /regist/i.test(raw)) throw spErr("setup", "Spotify hasn't approved your account for this app yet. On developer.spotify.com, open the app, go to User Management, add your name and the email of your Spotify account, then tap Disconnect and Connect again here.");
+      if (r.status === 403 && /premium/i.test(raw)) throw spErr("setup", "Spotify says this needs Premium on the account that made the app.");
       if (r.status === 429) throw spErr("rate", "Spotify says slow down. Wait a few seconds and try again");
-      throw spErr("api", er.message || ("Spotify error " + r.status));
+      throw spErr("api", `Spotify error ${r.status}${raw ? ": " + raw : ""}`);
     }
     return j;
   }
 
+  const SP_NO_DEVICE = "Spotify isn't showing up as a speaker. On the iPad, open the Spotify app and start playing any song (leave it playing), then come back and try again. The game takes over from there.";
   // Devices: the Spotify app on the iPad (or a phone or speaker) that actually plays the sound.
-  let spDeviceList = [], spDevAt = 0, spDevMsg = "";
+  let spDeviceList = [], spDevAt = 0, spDevMsg = "", spUser = "";
   async function spDevices() {
     const j = await spApi("GET", "/me/player/devices");
     spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted);
@@ -1355,7 +1358,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   async function spFind(q) {
     let items = [];
     for (const term of [`${q.a} ${q.src || ""}`.trim(), q.a]) {
-      const j = await spApi("GET", "/search?" + new URLSearchParams({ q: term, type: "track", limit: "10", market: "from_token" }).toString());
+      const j = await spApi("GET", "/search?" + new URLSearchParams({ q: term, type: "track", limit: "8" }).toString());
       items = (j && j.tracks && j.tracks.items) || [];
       if (items.length) break;
     }
@@ -1411,7 +1414,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     try {
       const track = await spResolve(q, opts.next);
       const dev = spPickDevice(await spDevices());
-      if (!dev) throw spErr("device", "Spotify isn't ready. Open the Spotify app on the iPad, play any song for a second, then come back and try again");
+      if (!dev) throw spErr("device", SP_NO_DEVICE);
       spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: dev.id }));
       if (gen !== clip.gen) return;
       await spApi("PUT", "/me/player/play?device_id=" + encodeURIComponent(dev.id), { uris: [track.uri], position_ms: 0 });
@@ -1489,11 +1492,11 @@ td.best::after { content: " \2605"; color: var(--teal); }
     } else {
       const dev = spPickDevice(spDeviceList);
       const opts = spDeviceList.map(d => `<option value="${esc(d.id)}"${dev && d.id === dev.id ? " selected" : ""}>${esc(d.name)} (${esc(d.type)})</option>`).join("");
-      body = `<p style="margin:0">Name the Tune plays from Spotify. Keep the Spotify app open in the background on the device below.</p>
+      body = `<p style="margin:0">${spUser ? `Connected as <strong>${esc(spUser)}</strong>. ` : ""}Name the Tune plays through the Spotify app on the device below.</p>
         <div class="row"><label for="sp-device" style="font-weight:800">Play on</label>
           <select id="sp-device"${spDeviceList.length ? "" : " disabled"}>${opts || "<option>No devices yet</option>"}</select>
           <button class="btn small" data-act="sp-devices">Refresh</button></div>
-        <p class="muted" id="sp-dev-msg" style="margin:0">${esc(spDevMsg || (spDeviceList.length ? "" : "Open the Spotify app on the iPad, play any song for a second, then tap Refresh."))}</p>
+        ${spDevMsg ? `<div class="sperr">${esc(spDevMsg)}</div>` : spDeviceList.length ? "" : `<p class="muted" style="margin:0">No speakers yet. On the iPad, open the Spotify app and start playing any song (leave it playing), then tap Refresh.</p>`}
         <div class="row"><button class="btn" data-act="sp-check">Check songs</button><span class="spacer"></span><button class="btn small" data-act="sp-logout">Disconnect</button></div>
         <div id="sp-check-out" class="muted"></div>`;
     }
@@ -1506,8 +1509,11 @@ td.best::after { content: " \2605"; color: var(--teal); }
   async function spHubRefresh(force) {
     if (!spConnected() || !S || S.screen !== "hub") return;
     if (!force && Date.now() - spDevAt < 15000) return;
-    try { await spDevices(); spDevMsg = ""; }
-    catch (e) { spDevMsg = e.message; spDevAt = Date.now(); }
+    try {
+      if (!spUser) { const me = await spApi("GET", "/me"); spUser = (me && (me.display_name || me.id)) || ""; }
+      await spDevices(); spDevMsg = "";
+    }
+    catch (e) { spDevMsg = e.code === "device" ? "" : e.message; spDevAt = Date.now(); }
     if (S && S.screen === "hub") refreshSpCard();
   }
   async function spCheckSongs() {
@@ -1521,7 +1527,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
         found++;
         lines.push(S.mode === "party" ? `#${i + 1} found` : `#${i + 1} ${esc(qs[i].a)}: ${esc(t.name)} · ${esc(t.artist)}`);
       } catch (e) {
-        if (e.code === "auth" || e.code === "net") { if (out) out.textContent = e.message; return; }
+        if (e.code !== "notfound") { const o = $("sp-check-out"); if (o) o.innerHTML = `<span class="sperr" style="display:block">${esc(e.message)}</span>`; return; }
         lines.push(`#${i + 1} not found, play it from your phone`);
       }
     }
@@ -1677,7 +1683,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       }
       case "sp-clear-id": spSet(SP_AUTH_KEY, null); refreshSpCard(); break;
       case "sp-login": spLogin(); break;
-      case "sp-logout": stopClip(); spSet(SP_AUTH_KEY, SPOTIFY_CLIENT_ID ? null : { clientId: spAuth().clientId }); spDeviceList = []; spDevAt = 0; refreshSpCard(); toast("Spotify disconnected"); break;
+      case "sp-logout": stopClip(); spSet(SP_AUTH_KEY, SPOTIFY_CLIENT_ID ? null : { clientId: spAuth().clientId }); spDeviceList = []; spDevAt = 0; spUser = ""; spDevMsg = ""; refreshSpCard(); toast("Spotify disconnected"); break;
       case "sp-devices": spHubRefresh(true); break;
       case "sp-check": spCheckSongs(); break;
       case "sp-intro-first": case "sp-intro": case "sp-next": {
