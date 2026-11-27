@@ -452,6 +452,21 @@ td.best::after { content: " \2605"; color: var(--teal); }
 .rules li::marker { font-weight: 800; }
 .rules strong { font-weight: 800; }
 
+/* ---------- spotify ---------- */
+.spcard { display: grid; gap: 12px; align-content: start; border-top: 16px solid var(--green); }
+.spcard h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; text-transform: uppercase; }
+.spcard select { min-height: 44px; padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 12px; background: #fff; font: inherit; font-weight: 700; color: var(--ink); max-width: 100%; flex: 1; min-width: 0; }
+.spcode { font-family: ui-monospace, Menlo, monospace; font-size: 0.92rem; background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 2px 8px; word-break: break-all; }
+.chip.ok { background: #DDF5E3; }
+.btn.green { background: var(--green); color: #fff; }
+.sperr { padding: 12px 16px; border: 3px solid var(--red); border-radius: 14px; background: #FFE3E6; font-weight: 700; font-size: 1.05rem; }
+.cliprow { display: flex; align-items: center; gap: 18px; flex: 1; min-width: 280px; }
+.ready .cliprow { width: 100%; }
+.timer.clip { background: var(--green); color: #fff; }
+.tbar.green > i { background: var(--green); }
+.spin { width: 28px; height: 28px; border-radius: 50%; border: 4px solid var(--ink); border-right-color: transparent; animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 900px) {
   .two-col, .teams-layout, .hub-grid, .modes { grid-template-columns: 1fr; }
   .tt { grid-template-columns: 1fr; }
@@ -486,7 +501,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "A Bollywood title translated word for word. The team on turn has 10 seconds to name the movie." },
     { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
     { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The start of a famous line. The team on turn has 10 seconds to finish it." },
-    { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The host plays the first 5 seconds of a song. The team on turn has 10 seconds to name it." }
+    { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The first 5 seconds of a song play. The team on turn has 10 seconds to name it." }
   ];
   const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
   const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
@@ -729,7 +744,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (sc === "start") el.innerHTML = viewStart();
     else if (sc === "players") el.innerHTML = viewPlayers();
     else if (sc === "teams") { el.innerHTML = viewTeams(); drawWheel(); }
-    else if (sc === "hub") el.innerHTML = viewHub();
+    else if (sc === "hub") { el.innerHTML = viewHub(); setTimeout(() => spHubRefresh(false), 0); }
     else if (sc === "game:jeopardy") el.innerHTML = S.openQ ? viewJeopardyQ() : viewBoard();
     else if (sc === "game:literal" || sc === "game:dialogue" || sc === "game:tunes") el.innerHTML = viewCardGame(sc.slice(5));
     else if (sc === "game:thisthat") el.innerHTML = viewThisThat();
@@ -969,7 +984,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
           <div class="row"><span style="font-weight:800">${played} of ${qs.length} played</span><span class="muted">${leader}</span><span class="spacer"></span>
             <button class="btn ${on ? "pink" : ""}" data-act="go" data-to="game:${g.id}"${on && qs.length ? "" : " disabled"}>${played && played < qs.length ? "Continue" : played === qs.length && qs.length ? "Review" : "Play"}</button></div>
         </div>`;
-      }).join("")}${rulesCard()}</div>`;
+      }).join("")}${rulesCard()}${spCard()}</div>`;
   }
   function rulesCard() {
     const on = !!S.drinks;
@@ -980,10 +995,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
         <li><strong>Wrong answer:</strong> whoever answered takes a sip.</li>
         <li><strong>Clock runs out:</strong> the whole team sips.</li>
         <li><strong>This or That:</strong> every team that picks wrong sips.</li>
-        <li><strong>Shot tile:</strong> one Jeopardy tile is hidden. Everyone on the team takes a shot to play it for double, or passes.</li>
         <li><strong>Last place</strong> after each game: everyone on that team takes a shot.</li>
       </ol>
-      <p class="muted" style="margin:0">Not drinking? Sip the mocktail. On the shot tile, a teammate takes an extra shot for you.</p>
+      <p class="muted" style="margin:0">Not drinking? Sip the mocktail.</p>
     </div>`;
   }
 
@@ -1110,6 +1124,17 @@ td.best::after { content: " \2605"; color: var(--teal); }
         ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn small" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${done ? "Next question" : "Skip for now"}</button>`}</div>`;
     const banner = done ? "" : turnBanner(game, "is up");
 
+    if (!shown && !S.started[q.id] && isTune && spConnected()) {
+      const busy = clip.q === q.id && !!clip.phase;
+      return `<div class="qview">${head}${banner}
+        <div class="card ready" style="border-top:14px solid ${g.color}">
+          <div class="h-display" style="font-size:1.6rem">${esc(q.q)}</div>
+          <p class="lead" style="margin:0">${busy ? "Listen up." : "Spotify plays the first 5 seconds, then the 10 second clock starts."} Worth ${pts}.</p>
+          ${busy ? spListening(q) : `<div class="row"><button class="btn big green" data-act="sp-intro-first" data-id="${q.id}">Play intro</button>
+            <button class="btn small" data-act="lit-start" data-id="${q.id}">Play it from my phone instead</button></div>`}
+          ${spErrBox(q)}
+        </div>${nav}</div>`;
+    }
     if (!shown && !S.started[q.id]) {
       const readyText = isTune
         ? `Host: play the first 5 seconds of <strong>tune #${i + 1}</strong> from your list, then start the timer.`
@@ -1142,7 +1167,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return `<div class="qview">${head}${banner}
       <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${txt.prompt}</div>${body}</div>
       ${timerHtml}
-      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
+      ${isTune && !shown ? spTuneControls(q, false) : ""}
+      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button>${isTune ? spButtons(q) : ""}</div>`}
+      ${isTune && shown ? spTuneControls(q, true) : ""}
       ${after}
       ${nav}
     </div>`;
@@ -1173,6 +1200,300 @@ td.best::after { content: " \2605"; color: var(--teal); }
         if (onCard) render();
       }
     }, 100);
+  }
+
+  // ---------- Spotify ----------
+  // Name the Tune plays intros through the Spotify app on the iPad (Spotify Connect), remote-controlled with the
+  // Web API. Login uses PKCE, so there is no secret in this page; the Client ID is public by design.
+  const SPOTIFY_CLIENT_ID = "";
+  const SP_AUTH_KEY = "fg-spotify-auth";
+  const SP_PKCE_KEY = "fg-spotify-pkce";
+  const SP_TRACKS_KEY = m => "fg-spotify-tracks-" + m;
+  const SP_SCOPES = "user-read-playback-state user-modify-playback-state";
+  const CLIP_MS = 5300;    // 5 seconds of music plus a little for Spotify to start
+  const SONG_MS = 30000;   // "Play the song" after the reveal
+  const SP_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, "");
+
+  function spGet(k) { try { return JSON.parse(localStorage.getItem(k)) || null; } catch (e) { return null; } }
+  function spSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage off */ } }
+  function spAuth() { return spGet(SP_AUTH_KEY) || {}; }
+  function spClientId() { return SPOTIFY_CLIENT_ID || spAuth().clientId || ""; }
+  function spConnected() { const a = spAuth(); return !!(a.refresh || a.access); }
+  function spErr(code, msg) { const e = new Error(msg); e.code = code; return e; }
+  function b64url(bytes) { let s = ""; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function randomStr(n) {
+    const cs = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const a = new Uint8Array(n); crypto.getRandomValues(a);
+    return Array.from(a, x => cs[x % cs.length]).join("");
+  }
+
+  async function spLogin() {
+    const id = spClientId();
+    if (!id) { toast("Add the Spotify Client ID first"); return; }
+    if (!(window.crypto && crypto.subtle)) { toast("This browser can't log in to Spotify"); return; }
+    const verifier = randomStr(64);
+    const challenge = b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
+    const state = randomStr(16);
+    save();
+    spSet(SP_PKCE_KEY, { verifier, state, clientId: id, mode: S && S.mode, screen: S && S.screen });
+    const q = new URLSearchParams({ response_type: "code", client_id: id, scope: SP_SCOPES, code_challenge_method: "S256", code_challenge: challenge, redirect_uri: SP_REDIRECT, state });
+    location.assign("https://accounts.spotify.com/authorize?" + q.toString());
+  }
+  // Back from Spotify's login page with ?code=... : trade it for tokens, then put the host back where they were.
+  async function spHandleReturn() {
+    const u = new URL(location.href);
+    const code = u.searchParams.get("code"), err = u.searchParams.get("error"), state = u.searchParams.get("state");
+    if (!code && !err) return null;
+    history.replaceState(null, "", location.pathname + location.hash);
+    const p = spGet(SP_PKCE_KEY);
+    spSet(SP_PKCE_KEY, null);
+    if (!p) return null;
+    if (err || state !== p.state) return { p, msg: err === "access_denied" ? "Spotify login cancelled" : "Spotify login didn't work. Try again" };
+    let r, j = {};
+    try {
+      r = await fetch("https://accounts.spotify.com/api/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: SP_REDIRECT, client_id: p.clientId, code_verifier: p.verifier }) });
+      j = await r.json().catch(() => ({}));
+    } catch (e) { return { p, msg: "Can't reach Spotify. Check the wifi" }; }
+    if (!r.ok || !j.access_token) return { p, msg: "Spotify login didn't work: " + (j.error_description || j.error || r.status) };
+    spSet(SP_AUTH_KEY, Object.assign(spAuth(), { clientId: p.clientId, access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
+    return { p, msg: "Spotify connected", ok: true };
+  }
+  let spRefreshing = null;
+  async function spToken(force) {
+    const a = spAuth();
+    if (!a.access && !a.refresh) throw spErr("auth", "Connect Spotify first (Games screen)");
+    if (!force && a.access && a.exp > Date.now() + 60000) return a.access;
+    if (!a.refresh) throw spErr("auth", "Connect Spotify again (Games screen)");
+    if (!spRefreshing) spRefreshing = (async () => {
+      let r, j = {};
+      try {
+        r = await fetch("https://accounts.spotify.com/api/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: a.refresh, client_id: a.clientId || spClientId() }) });
+        j = await r.json().catch(() => ({}));
+      } catch (e) { throw spErr("net", "Can't reach Spotify. Check the wifi"); }
+      if (!r.ok || !j.access_token) {
+        if (r.status === 400 || r.status === 401) spSet(SP_AUTH_KEY, { clientId: a.clientId, device: a.device });
+        throw spErr("auth", "Spotify logged out. Connect again on the Games screen");
+      }
+      spSet(SP_AUTH_KEY, Object.assign(spAuth(), { access: j.access_token, refresh: j.refresh_token || a.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
+      return j.access_token;
+    })().finally(() => { spRefreshing = null; });
+    return spRefreshing;
+  }
+  async function spApi(method, path, body, retried) {
+    const tok = await spToken();
+    let r;
+    try {
+      r = await fetch("https://api.spotify.com/v1" + path, { method,
+        headers: Object.assign({ Authorization: "Bearer " + tok }, body ? { "Content-Type": "application/json" } : {}),
+        body: body ? JSON.stringify(body) : undefined });
+    } catch (e) { throw spErr("net", "Can't reach Spotify. Check the wifi"); }
+    if (r.status === 401 && !retried) { await spToken(true); return spApi(method, path, body, true); }
+    const text = await r.text().catch(() => "");
+    let j = null; try { j = text ? JSON.parse(text) : null; } catch (e) { /* empty body */ }
+    if (!r.ok) {
+      const er = (j && j.error) || {};
+      if (r.status === 404 || er.reason === "NO_ACTIVE_DEVICE") throw spErr("device", "Spotify isn't ready. Open the Spotify app on the iPad, play any song for a second, then come back and try again");
+      if (r.status === 403) throw spErr("premium", er.message || "Spotify said no. This needs Spotify Premium");
+      if (r.status === 429) throw spErr("rate", "Spotify says slow down. Wait a few seconds and try again");
+      throw spErr("api", er.message || ("Spotify error " + r.status));
+    }
+    return j;
+  }
+
+  // Devices: the Spotify app on the iPad (or a phone or speaker) that actually plays the sound.
+  let spDeviceList = [], spDevAt = 0, spDevMsg = "";
+  async function spDevices() {
+    const j = await spApi("GET", "/me/player/devices");
+    spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted);
+    spDevAt = Date.now();
+    return spDeviceList;
+  }
+  function spPickDevice(list) {
+    const saved = spAuth().device;
+    return list.find(d => d.id === saved) || list.find(d => d.is_active) || list.find(d => /tablet/i.test(d.type)) || list.find(d => /smartphone/i.test(d.type)) || list[0] || null;
+  }
+
+  // Finding each tune on Spotify: search title + film/artist, prefer the original over remixes and covers.
+  const SP_BAD = /\b(remix|lo-?fi|slowed|reverb|cover|karaoke|instrumental|reprise|unplugged|mashup|8d|sped|live|acoustic|female|recreated|mix)\b/i;
+  function norm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+  function spTracks() { return spGet(SP_TRACKS_KEY(S.mode)) || {}; }
+  async function spFind(q) {
+    let items = [];
+    for (const term of [`${q.a} ${q.src || ""}`.trim(), q.a]) {
+      const j = await spApi("GET", "/search?" + new URLSearchParams({ q: term, type: "track", limit: "10", market: "from_token" }).toString());
+      items = (j && j.tracks && j.tracks.items) || [];
+      if (items.length) break;
+    }
+    const t = norm(q.a), src = norm(q.src);
+    const score = (it, i) => {
+      const n = norm(it.name), al = norm(it.album && it.album.name), ar = norm((it.artists || []).map(a => a.name).join(" "));
+      let s = -i * 0.1;
+      if (n === t) s += 6; else if (n.includes(t)) s += 4; else if (n.length > 3 && t.includes(n)) s += 2;
+      if (src && (al.includes(src) || ar.includes(src))) s += 3;
+      if (SP_BAD.test(it.name) || SP_BAD.test((it.album && it.album.name) || "")) s -= 5;
+      return s;
+    };
+    return items.map((it, i) => ({ it, s: score(it, i) })).sort((a, b) => b.s - a.s).slice(0, 5)
+      .map(x => ({ uri: x.it.uri, name: x.it.name, artist: (x.it.artists || []).map(a => a.name).join(", ") }));
+  }
+  async function spResolve(q, next) {
+    const cache = spTracks();
+    let c = cache[q.id];
+    if (!c || !c.list || !c.list.length) {
+      const list = await spFind(q);
+      if (!list.length) throw spErr("notfound", "Couldn't find this song on Spotify. Play it from your phone instead");
+      c = { list, i: 0 };
+    }
+    if (next) c.i = (c.i + 1) % c.list.length;
+    cache[q.id] = c; spSet(SP_TRACKS_KEY(S.mode), cache);
+    return c.list[c.i];
+  }
+
+  // Playing: intro = 5 seconds then pause; song = up to 30 seconds after the reveal.
+  const clip = { q: null, phase: null, end: 0, ms: 0, t: null, int: null, err: "", errQ: null, gen: 0 };
+  function clipClear() { clearTimeout(clip.t); clearInterval(clip.int); clip.t = null; clip.int = null; }
+  async function spPause() {
+    const d = spAuth().device;
+    try { await spApi("PUT", "/me/player/pause" + (d ? "?device_id=" + encodeURIComponent(d) : "")); } catch (e) { /* already paused */ }
+  }
+  function stopClip() {
+    const playing = clip.phase === "intro" || clip.phase === "song";
+    clipClear(); clip.gen++; clip.q = null; clip.phase = null;
+    if (playing) spPause();
+  }
+  function rerenderTune() { if (S && S.screen === "game:tunes") render(); }
+  function tickClip() {
+    const ms = Math.max(0, clip.end - Date.now());
+    const el = $("cliptimer"), bar = $("clipbar");
+    if (el) el.textContent = Math.ceil(ms / 1000);
+    if (bar) bar.style.width = (ms / clip.ms * 100) + "%";
+  }
+  async function spPlay(q, opts) {
+    clipClear();
+    const gen = ++clip.gen;
+    clip.q = q.id; clip.phase = "loading"; clip.err = ""; clip.errQ = null;
+    rerenderTune();
+    try {
+      const track = await spResolve(q, opts.next);
+      const dev = spPickDevice(await spDevices());
+      if (!dev) throw spErr("device", "Spotify isn't ready. Open the Spotify app on the iPad, play any song for a second, then come back and try again");
+      spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: dev.id }));
+      if (gen !== clip.gen) return;
+      await spApi("PUT", "/me/player/play?device_id=" + encodeURIComponent(dev.id), { uris: [track.uri], position_ms: 0 });
+      if (gen !== clip.gen) { spPause(); return; }
+      clip.phase = opts.song ? "song" : "intro"; clip.ms = opts.ms; clip.end = Date.now() + opts.ms;
+      rerenderTune();
+      clip.int = setInterval(tickClip, 100);
+      clip.t = setTimeout(async () => {
+        if (gen !== clip.gen) return;
+        clipClear(); clip.phase = null; clip.q = null;
+        await spPause();
+        if (opts.then) opts.then();
+        rerenderTune();
+      }, opts.ms);
+    } catch (e) {
+      if (gen !== clip.gen) return;
+      clip.phase = null; clip.q = null; clip.err = e.message || "Spotify didn't play"; clip.errQ = q.id;
+      rerenderTune();
+    }
+  }
+  // how: "first" = from the ready card, "replay" = again while the clock runs, "next" = another version, clock restarts.
+  function playIntro(q, how) {
+    const restart = how !== "replay";
+    if (restart) stopTimer();
+    spPlay(q, { ms: CLIP_MS, next: how === "next", then: restart ? () => {
+      if (!S || q.id in S.done || S.revealed[q.id]) return;
+      S.started[q.id] = true; save();
+      startTimer(q.id);
+    } : null });
+  }
+
+  // UI pieces for the tune card.
+  function spErrBox(q) {
+    return clip.err && clip.errQ === q.id ? `<div class="sperr">${esc(clip.err)}</div>` : "";
+  }
+  function spListening(q) {
+    if (clip.q !== q.id) return "";
+    if (clip.phase === "loading") return `<div class="cliprow"><span class="spin" aria-hidden="true"></span><strong>Getting the song from Spotify…</strong></div>`;
+    if (clip.phase === "intro" || clip.phase === "song") {
+      const ms = Math.max(0, clip.end - Date.now());
+      return `<div class="cliprow"><div class="timer clip" id="cliptimer">${Math.ceil(ms / 1000)}</div>
+        <div class="tbar green"><i id="clipbar" style="width:${ms / clip.ms * 100}%"></i></div>
+        <button class="btn small" data-act="sp-stop">Stop</button></div>`;
+    }
+    return "";
+  }
+  // While the clock runs: buttons sit next to Reveal. The playing bar and any error get their own line.
+  function spButtons(q) {
+    if (!spConnected() || (clip.q === q.id && clip.phase)) return "";
+    return `<span class="spacer"></span><button class="btn small" data-act="sp-intro" data-id="${q.id}">Replay intro</button>
+      <button class="btn small" data-act="sp-next" data-id="${q.id}">Wrong song? Try another version</button>`;
+  }
+  function spTuneControls(q, shown) {
+    if (!spConnected()) return "";
+    const busy = clip.q === q.id && !!clip.phase;
+    if (!shown) return busy || (clip.err && clip.errQ === q.id) ? `${busy ? `<div class="row">${spListening(q)}</div>` : ""}${spErrBox(q)}` : "";
+    return `<div class="row">${spListening(q)}${busy ? "" : `<button class="btn green" data-act="sp-song" data-id="${q.id}">Play the song</button>
+      <button class="btn small" data-act="sp-song-next" data-id="${q.id}">Wrong version? Try another</button>`}</div>${spErrBox(q)}`;
+  }
+
+  // Hub card: one-time setup, device picker, song check.
+  function spCard() {
+    const id = spClientId(), on = spConnected();
+    let body;
+    if (!id) {
+      body = `<p style="margin:0">Play Name the Tune straight from Spotify. The sound comes from the Spotify app on this iPad, so it goes to the TV. Needs Spotify Premium.</p>
+        <ol class="rules"><li>On developer.spotify.com/dashboard, create an app and tick <strong>Web API</strong>.</li>
+          <li>Add this redirect URI to the app: <span class="spcode">${esc(SP_REDIRECT)}</span></li>
+          <li>Paste the app's Client ID here.</li></ol>
+        <div class="row"><input type="text" id="sp-client" placeholder="Client ID" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:220px">
+          <button class="btn pink" data-act="sp-save-id">Save</button></div>`;
+    } else if (!on) {
+      body = `<p style="margin:0">Plays Name the Tune intros through the Spotify app on this iPad, so the sound goes to the TV. Open Spotify on the iPad once before you start.</p>
+        <div class="row"><button class="btn big green" data-act="sp-login">Connect Spotify</button>${SPOTIFY_CLIENT_ID ? "" : '<span class="spacer"></span><button class="btn small" data-act="sp-clear-id">Change Client ID</button>'}</div>`;
+    } else {
+      const dev = spPickDevice(spDeviceList);
+      const opts = spDeviceList.map(d => `<option value="${esc(d.id)}"${dev && d.id === dev.id ? " selected" : ""}>${esc(d.name)} (${esc(d.type)})</option>`).join("");
+      body = `<p style="margin:0">Name the Tune plays from Spotify. Keep the Spotify app open in the background on the device below.</p>
+        <div class="row"><label for="sp-device" style="font-weight:800">Play on</label>
+          <select id="sp-device"${spDeviceList.length ? "" : " disabled"}>${opts || "<option>No devices yet</option>"}</select>
+          <button class="btn small" data-act="sp-devices">Refresh</button></div>
+        <p class="muted" id="sp-dev-msg" style="margin:0">${esc(spDevMsg || (spDeviceList.length ? "" : "Open the Spotify app on the iPad, play any song for a second, then tap Refresh."))}</p>
+        <div class="row"><button class="btn" data-act="sp-check">Check songs</button><span class="spacer"></span><button class="btn small" data-act="sp-logout">Disconnect</button></div>
+        <div id="sp-check-out" class="muted"></div>`;
+    }
+    return `<div class="card spcard"><div class="row"><h3>Spotify</h3><span class="spacer"></span><span class="chip${on ? " ok" : ""}">${on ? "Connected" : "Not connected"}</span></div>${body}</div>`;
+  }
+  function refreshSpCard() {
+    const card = document.querySelector(".spcard");
+    if (card && S && S.screen === "hub") card.outerHTML = spCard(); else render();
+  }
+  async function spHubRefresh(force) {
+    if (!spConnected() || !S || S.screen !== "hub") return;
+    if (!force && Date.now() - spDevAt < 15000) return;
+    try { await spDevices(); spDevMsg = ""; }
+    catch (e) { spDevMsg = e.message; spDevAt = Date.now(); }
+    if (S && S.screen === "hub") refreshSpCard();
+  }
+  async function spCheckSongs() {
+    const out = $("sp-check-out");
+    const qs = gameQs("tunes");
+    if (out) out.textContent = "Checking " + qs.length + " songs…";
+    const lines = []; let found = 0;
+    for (let i = 0; i < qs.length; i++) {
+      try {
+        const t = await spResolve(qs[i]);
+        found++;
+        lines.push(S.mode === "party" ? `#${i + 1} found` : `#${i + 1} ${esc(qs[i].a)}: ${esc(t.name)} · ${esc(t.artist)}`);
+      } catch (e) {
+        if (e.code === "auth" || e.code === "net") { if (out) out.textContent = e.message; return; }
+        lines.push(`#${i + 1} not found, play it from your phone`);
+      }
+    }
+    const o = $("sp-check-out");
+    if (o) o.innerHTML = `<strong>Found ${found} of ${qs.length}.</strong><br>${lines.join("<br>")}`;
   }
 
   // ---------- this or that ----------
@@ -1266,8 +1587,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
   }
 
   // ---------- actions ----------
+  function stopAll() { stopTimer(); stopClip(); }
   function go(to) {
-    stopTimer();
+    stopAll();
     if (to === "teams") { syncTeamsWithPlayers(); lastLanded = null; }
     if (to === "game:jeopardy") S.openQ = null;
     if (to === "results" && S.screen !== "results") setTimeout(() => { if (totals().some(v => v > 0)) celebrate(true); }, 150);
@@ -1291,7 +1613,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   }
   function mark(game, qid, ok) {
     const q = qById(game, qid); if (!q || qid in S.done) return;
-    stopTimer();
+    stopAll();
     const pts = livePoints(game, q);
     const ti = turnTeam(game);
     const name = S.teams[ti].name;
@@ -1313,8 +1635,27 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (!b || b.disabled) return;
     const a = b.dataset.act;
     switch (a) {
-      case "home": stopTimer(); clearDrinks(); S = null; render(); break;
+      case "home": stopAll(); clearDrinks(); S = null; render(); break;
       case "drink-ok": showDrink(); break;
+      case "sp-save-id": {
+        const v = ($("sp-client").value || "").trim();
+        if (!/^[A-Za-z0-9]{20,64}$/.test(v)) { toast("That doesn't look like a Client ID"); return; }
+        spSet(SP_AUTH_KEY, Object.assign(spAuth(), { clientId: v })); refreshSpCard(); break;
+      }
+      case "sp-clear-id": spSet(SP_AUTH_KEY, null); refreshSpCard(); break;
+      case "sp-login": spLogin(); break;
+      case "sp-logout": stopClip(); spSet(SP_AUTH_KEY, SPOTIFY_CLIENT_ID ? null : { clientId: spAuth().clientId }); spDeviceList = []; spDevAt = 0; refreshSpCard(); toast("Spotify disconnected"); break;
+      case "sp-devices": spHubRefresh(true); break;
+      case "sp-check": spCheckSongs(); break;
+      case "sp-intro-first": case "sp-intro": case "sp-next": {
+        const q = qById("tunes", b.dataset.id); if (!q) return;
+        playIntro(q, a === "sp-intro-first" ? "first" : a === "sp-next" ? "next" : "replay"); break;
+      }
+      case "sp-song": case "sp-song-next": {
+        const q = qById("tunes", b.dataset.id); if (!q) return;
+        spPlay(q, { ms: SONG_MS, song: true, next: a === "sp-song-next" }); break;
+      }
+      case "sp-stop": stopClip(); rerenderTune(); break;
       case "toggle-drinks": S.drinks = !S.drinks; if (!S.drinks) clearDrinks(); save(); render(); break;
       case "shot": {
         const id = b.dataset.id;
@@ -1334,7 +1675,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       }
       case "resume": S = load(b.dataset.mode) || fresh(b.dataset.mode); clearDrinks(); render(); break;
       case "go": go(b.dataset.to); break;
-      case "undo": stopTimer(); clearDrinks(); undo(); break;
+      case "undo": stopAll(); clearDrinks(); undo(); break;
       case "rm-player": S.players.splice(Number(b.dataset.i), 1); syncTeamsWithPlayers(); save(); render(); break;
       case "add-player": {
         const n = cleanName($("add-name").value);
@@ -1376,7 +1717,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       case "lit-restart": startTimer(b.dataset.id); render(); break;
       case "award": award(b.dataset.g, b.dataset.id, Number(b.dataset.i)); break;
       case "step": {
-        stopTimer();
+        stopAll();
         const g = b.dataset.g, n = gameQs(g).length, cur = S.cursor[g] || 0;
         if (Number(b.dataset.d) > 0) { const j = nextOpen(g, cur); if (j >= 0) S.cursor[g] = j; }
         else S.cursor[g] = Math.max(0, cur - 1);
@@ -1421,6 +1762,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
       case "confetti": celebrate(true); break;
     }
   });
+  document.addEventListener("change", e => {
+    if (e.target.id === "sp-device") { spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: e.target.value })); toast("Spotify will play on " + e.target.selectedOptions[0].textContent); }
+  });
   document.addEventListener("input", e => {
     const t = e.target;
     if (t.dataset && t.dataset.act === "team-name") {
@@ -1436,6 +1780,11 @@ td.best::after { content: " \2605"; color: var(--teal); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && S.screen === "teams") drawWheel(); });
 
   render();
+  spHandleReturn().then(res => {
+    if (!res) return;
+    if (res.p && res.p.mode) { const v = load(res.p.mode); if (v) { S = v; if (res.p.screen) S.screen = res.p.screen; } }
+    render(); toast(res.msg);
+  });
 })();
 </script>
 </body>
