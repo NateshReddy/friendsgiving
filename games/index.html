@@ -499,7 +499,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     { name: "From the Village", color: "#8B3DFF" }
   ];
   const GAMES = [
-    { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Teams take turns picking a category and a value. Get it right to score it." },
+    { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Teams take turns picking a category and a value. Pass, and the next team has 5 seconds to steal it." },
     { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "A Bollywood title translated word for word. The team on turn has 10 seconds to name the movie." },
     { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
     { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The start of a famous line. The team on turn has 10 seconds to finish it." },
@@ -547,6 +547,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       shotTiles: null,   // jeopardy qid -> "choice" (shots or pass) | "must" (shots, no pass)
       shotChoice: {},    // qid -> "take" | "pass"
       shotBy: {},        // qid -> team index that opened it
+      steal: null,       // { qid, game, from, team, tried, expired } while another team tries to steal
       timedOut: {},      // qid -> true once the clock ran out
       lastShot: {}       // game -> true once the last-place shot was called
     };
@@ -556,6 +557,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (!v.shotTiles) v.shotTiles = null;
     v.shotChoice = v.shotChoice || {};
     v.shotBy = v.shotBy || {};
+    if (!("steal" in v)) v.steal = null;
     v.timedOut = v.timedOut || {};
     v.lastShot = v.lastShot || {};
     return v;
@@ -754,6 +756,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     delete S.done[h.qid];
     S.revealed[h.qid] = true;
     delete S.lastShot[h.game];   // game is open again, so its last-place shot can be called again
+    S.steal = null;
     if (typeof h.turnBefore === "number") S.turn[h.game] = h.turnBefore;
     if (h.game === "jeopardy") { S.openQ = h.qid; S.screen = "game:jeopardy"; }
     else {
@@ -1061,16 +1064,56 @@ td.best::after { content: " \2605"; color: var(--teal); }
       <button class="thumb down" data-act="fb" data-id="${q.id}" data-v="down" aria-pressed="${v === "down"}" aria-label="Thumbs down">${THUMB_DOWN}</button></span>`;
   }
   function turnTeam(game) { return S.turn[game] % S.teams.length; }
-  function turnBanner(game, msg) {
+  // Steal: the team on turn passes, the next team gets 5 seconds for the same points, then the next, and so on.
+  // The turn itself still moves on from the team that was up.
+  const STEAL_MS = 5000;
+  function activeSteal(game, qid) {
+    const st = S.steal;
+    return st && st.game === game && (!qid || st.qid === qid) && !(st.qid in S.done) ? st : null;
+  }
+  function nextStealTeam(game, qid) {
+    const st = activeSteal(game, qid);
+    const from = st ? st.from : turnTeam(game);
+    const tried = st ? st.tried : [from];
+    const cur = st ? st.team : from;
+    for (let k = 1; k < S.teams.length; k++) { const ti = (cur + k) % S.teams.length; if (!tried.includes(ti)) return ti; }
+    return -1;
+  }
+  function turnBanner(game, msg, canChange, qid) {
+    const st = qid ? activeSteal(game, qid) : null;
+    if (st) {
+      const t = S.teams[st.team];
+      return `<div class="turnbar steal" style="--c:${t.color}"><span class="tdot"></span><span class="tmsg"><strong>${esc(t.name)}</strong> can steal it. 5 seconds!</span></div>`;
+    }
     const t = S.teams[turnTeam(game)];
-    return `<div class="turnbar" style="--c:${t.color}"><span class="tdot"></span><span class="tmsg"><strong>${esc(t.name)}</strong> ${msg}</span><span class="spacer"></span><button class="btn small" data-act="turn-next" data-g="${game}">Skip to next team</button></div>`;
+    return `<div class="turnbar" style="--c:${t.color}"><span class="tdot"></span><span class="tmsg"><strong>${esc(t.name)}</strong> ${msg}</span><span class="spacer"></span>${canChange ? `<button class="btn small" data-act="turn-next" data-g="${game}">Change team</button>` : ""}</div>`;
+  }
+  function passButton(game, q) {
+    if (q.id in S.done) return "";
+    const nx = nextStealTeam(game, q.id);
+    if (nx < 0) return `<button class="btn big ink" data-act="steal-none" data-g="${game}" data-id="${q.id}">Nobody got it, show answer</button>`;
+    const t = S.teams[nx];
+    return `<button class="btn big teambtn" style="--c:${t.color}" data-act="steal" data-g="${game}" data-id="${q.id}">Pass to ${esc(t.name)} · 5 sec</button>`;
   }
   function markButtons(game, q, pts) {
     if (q.id in S.done) return "";
-    const t = S.teams[turnTeam(game)];
-    return `<div class="award"><span class="lbl">Did ${esc(t.name)} get it?</span>
-      <div class="row"><button class="btn big teal" data-act="mark" data-g="${game}" data-id="${q.id}" data-ok="1">Got it +${pts}</button>
+    const st = activeSteal(game, q.id);
+    const t = S.teams[st ? st.team : turnTeam(game)];
+    const p = st ? pointsFor(game, q) : pts;
+    return `<div class="award"><span class="lbl">Did ${esc(t.name)} get it${st ? " (steal)" : ""}?</span>
+      <div class="row"><button class="btn big teal" data-act="mark" data-g="${game}" data-id="${q.id}" data-ok="1">Got it +${p}</button>
       <button class="btn big" data-act="mark" data-g="${game}" data-id="${q.id}" data-ok="0">Missed</button></div></div>`;
+  }
+  function timerRow(game, q) {
+    const st = activeSteal(game, q.id);
+    const running = timer.q === q.id;
+    const total = running ? timer.ms : (st ? STEAL_MS : TIMER_MS);
+    const left = running ? Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)) : 0;
+    const pct = running ? Math.max(0, (timer.end - Date.now()) / total * 100) : 0;
+    const expired = st ? st.expired : S.timedOut[q.id];
+    return `<div class="timerrow"><div class="timer${running && left <= 3 ? " low" : ""}" id="timer">${running ? left : expired ? "0" : "–"}</div>
+      <div class="tbar"><i id="tbar" style="width:${pct}%"></i></div>
+      <button class="btn small" data-act="lit-restart" data-g="${game}" data-id="${q.id}">${running ? "Restart timer" : "Start timer"}</button></div>`;
   }
   function awardButtons(game, q, pts) {
     const done = q.id in S.done;
@@ -1106,7 +1149,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return `<div class="row"><h1 class="h-display" style="font-size:2rem">Desi Jeopardy</h1><span class="spacer"></span>
       <span style="font-weight:800">${playedCount("jeopardy")} of ${jeopardyQs().length} played</span>
       <button class="btn small" data-act="go" data-to="hub">All games</button></div>
-      ${playedCount("jeopardy") < jeopardyQs().length ? turnBanner("jeopardy", "pick a category and a value") : ""}
+      ${playedCount("jeopardy") < jeopardyQs().length ? turnBanner("jeopardy", "pick a category and a value", true) : ""}
       <div class="board" style="grid-template-columns:repeat(${cols}, minmax(0,1fr))">${cells}</div>`;
   }
   function viewJeopardyQ() {
@@ -1144,9 +1187,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return `<div class="qview">
       <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
         <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${dbl ? `<span class="chip dbl">Shot tile · double · ${pts}</span>` : levelChip(q, q.value)}</div></div>
-      ${done ? "" : turnBanner("jeopardy", "is answering")}
+      ${done ? "" : turnBanner("jeopardy", "is answering", false, q.id)}
       <div class="card"><div class="qtext">${esc(q.q)}</div></div>
-      ${shown ? `<div class="answer">${esc(q.a)}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
+      ${!shown && activeSteal("jeopardy", q.id) ? timerRow("jeopardy", q) : ""}
+      ${shown ? `<div class="answer">${esc(q.a)}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button>${passButton("jeopardy", q)}</div>`}
       ${shown ? `<div class="row" style="align-items:flex-start">${done ? awardButtons("jeopardy", q, pts) : markButtons("jeopardy", q, pts)}${feedbackBox(q)}</div>` : ""}
       ${q.id in S.done ? '<div class="row"><button class="btn big ink" data-act="close-q">Back to board</button></div>' : ""}
     </div>`;
@@ -1176,8 +1220,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
         <button class="btn small" data-act="go" data-to="hub">All games</button></div>`;
     const nav = `<div class="row"><button class="btn small" data-act="step" data-g="${game}" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>
         <span class="spacer"></span>
-        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn small" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${done ? "Next question" : "Skip for now"}</button>`}</div>`;
-    const banner = done ? "" : turnBanner(game, "is up");
+        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>`
+          : done ? `<button class="btn small" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>Next question</button>`
+          : `<button class="btn small" data-act="skip-q" data-g="${game}" data-id="${q.id}">Skip (no points)</button>`}</div>`;
+    const banner = done ? "" : turnBanner(game, "is up", !shown && !S.started[q.id], q.id);
 
     if (!shown && !S.started[q.id] && isTune && spConnected()) {
       const busy = clip.q === q.id && !!clip.phase;
@@ -1201,15 +1247,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
           <button class="btn big pink" data-act="lit-start" data-id="${q.id}">${txt.start}</button>
         </div>${nav}</div>`;
     }
-    let timerHtml = "";
-    if (!shown) {
-      const running = timer.q === q.id;
-      const left = running ? Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)) : 0;
-      const pct = running ? Math.max(0, (timer.end - Date.now()) / TIMER_MS * 100) : 0;
-      timerHtml = `<div class="timerrow"><div class="timer${running && left <= 3 ? " low" : ""}" id="timer">${running ? left : "–"}</div>
-        <div class="tbar"><i id="tbar" style="width:${pct}%"></i></div>
-        <button class="btn small" data-act="lit-restart" data-id="${q.id}">${running ? "Restart timer" : "Start timer"}</button></div>`;
-    }
+    const timerHtml = shown ? "" : timerRow(game, q);
     const body = isTune
       ? `<div class="qtext">${shown ? "" : "Which song is this?"}</div><div class="chip" style="margin-top:10px">${esc(q.q)}</div>`
       : `<div class="qtext${game === "literal" ? " literal" : ""}">${esc(q.q)}</div>`;
@@ -1223,7 +1261,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${txt.prompt}</div>${body}</div>
       ${timerHtml}
       ${isTune && !shown ? spTuneControls(q, false) : ""}
-      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button>${isTune ? spButtons(q) : ""}</div>`}
+      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button>${passButton(game, q)}${isTune ? spButtons(q) : ""}</div>`}
       ${isTune && shown ? spTuneControls(q, true) : ""}
       ${after}
       ${nav}
@@ -1232,27 +1270,31 @@ td.best::after { content: " \2605"; color: var(--teal); }
 
   // ---------- 10 second timer ----------
   const TIMER_MS = 10000;
-  const timer = { q: null, end: 0, int: null };
+  const timer = { q: null, end: 0, ms: TIMER_MS, int: null };
   function stopTimer() { clearInterval(timer.int); timer.int = null; timer.q = null; }
-  function startTimer(qid) {
+  // Time running out no longer shows the answer: the host passes it on (steal) or reveals it.
+  function startTimer(qid, ms) {
     stopTimer();
-    timer.q = qid; timer.end = Date.now() + TIMER_MS;
+    timer.q = qid; timer.ms = ms || TIMER_MS; timer.end = Date.now() + timer.ms;
     timer.int = setInterval(() => {
-      const ms = timer.end - Date.now();
-      const left = Math.max(0, Math.ceil(ms / 1000));
+      const left_ms = timer.end - Date.now();
+      const left = Math.max(0, Math.ceil(left_ms / 1000));
       const el = $("timer"), bar = $("tbar");
       if (el) { el.textContent = left; el.classList.toggle("low", left <= 3); }
-      if (bar) bar.style.width = Math.max(0, ms / TIMER_MS * 100) + "%";
-      if (ms <= 0) {
+      if (bar) bar.style.width = Math.max(0, left_ms / timer.ms * 100) + "%";
+      if (left_ms <= 0) {
         const q = timer.q;
         stopTimer();
-        const onCard = S && ["game:literal", "game:dialogue", "game:tunes"].includes(S.screen);
+        const game = S && S.screen && S.screen.startsWith("game:") ? S.screen.slice(5) : null;
+        const st = game ? activeSteal(game, q) : null;
         if (S && q && !(q in S.done)) {
-          S.revealed[q] = true; S.timedOut[q] = true; save();
-          if (S.drinks && onCard) drinkTimeout(turnTeam(S.screen.slice(5)));
-          else toast("Time's up");
+          if (st) { st.expired = true; save(); toast(`Time's up for ${S.teams[st.team].name}`); }
+          else {
+            S.timedOut[q] = true; save();
+            if (S.drinks && game && game !== "jeopardy") drinkTimeout(turnTeam(game)); else toast("Time's up");
+          }
         } else toast("Time's up");
-        if (onCard) render();
+        if (game) render();
       }
     }, 100);
   }
@@ -1553,7 +1595,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     spPlay(q, { ms: INTRO_MS, next: how === "next", then: restart ? () => {
       if (!S || q.id in S.done || S.revealed[q.id]) return;
       S.started[q.id] = true; save();
-      startTimer(q.id);
+      startTimer(q.id, activeSteal("tunes", q.id) ? STEAL_MS : TIMER_MS);
     } : null });
   }
 
@@ -1766,21 +1808,57 @@ td.best::after { content: " \2605"; color: var(--teal); }
     checkGameOver(game);
     render();
   }
+  function startSteal(game, qid) {
+    const q = qById(game, qid); if (!q || qid in S.done) return;
+    const nx = nextStealTeam(game, qid); if (nx < 0) return;
+    const st = activeSteal(game, qid) || { qid, game, from: turnTeam(game), tried: [turnTeam(game)] };
+    st.team = nx; st.tried.push(nx); st.expired = false;
+    S.steal = st; S.started[qid] = true; save();
+    startTimer(qid, STEAL_MS);
+    render();
+  }
+  // Nobody stole it: show the answer, no points, turn moves on from the team that was up.
+  function stealNone(game, qid) {
+    const q = qById(game, qid); if (!q || qid in S.done) return;
+    stopTimer();
+    const st = activeSteal(game, qid);
+    const from = st ? st.from : turnTeam(game);
+    S.revealed[qid] = true;
+    applyAward(game, qid, S.teams.map(() => 0), "nobody got it", { turnBefore: S.turn[game] });
+    S.steal = null;
+    S.turn[game] = (from + 1) % S.teams.length;
+    save(); toast("Nobody got it"); checkGameOver(game); render();
+  }
+  // Skip loses the points for the team on turn; the question is done and the turn moves on.
+  function skipQ(game, qid) {
+    const q = qById(game, qid); if (!q || qid in S.done) return;
+    stopAll();
+    const st = activeSteal(game, qid);
+    const from = st ? st.from : turnTeam(game);
+    applyAward(game, qid, S.teams.map(() => 0), `${S.teams[from].name} skipped`, { turnBefore: S.turn[game] });
+    S.steal = null;
+    S.turn[game] = (from + 1) % S.teams.length;
+    const j = nextOpen(game, S.cursor[game] || 0); if (j >= 0) S.cursor[game] = j;
+    save(); toast(`${S.teams[from].name} skipped. No points`); checkGameOver(game); render();
+  }
   function mark(game, qid, ok) {
     const q = qById(game, qid); if (!q || qid in S.done) return;
     stopAll();
-    const pts = livePoints(game, q);
-    const ti = turnTeam(game);
+    const st = activeSteal(game, qid);
+    const from = st ? st.from : turnTeam(game);
+    const ti = st ? st.team : from;
+    const pts = st ? pointsFor(game, q) : livePoints(game, q);   // a steal is worth the plain value
     const name = S.teams[ti].name;
     const deltas = S.teams.map((t, i) => (ok && i === ti ? pts : 0));
-    applyAward(game, qid, deltas, ok ? `${pts} to ${name}` : `${name} missed`, { turnBefore: S.turn[game] });
-    S.turn[game] = (ti + 1) % S.teams.length;
+    applyAward(game, qid, deltas, ok ? `${pts} to ${name}${st ? " (steal)" : ""}` : `${name} missed`, { turnBefore: S.turn[game] });
+    S.steal = null;
+    S.turn[game] = (from + 1) % S.teams.length;
     if (game === "jeopardy") S.openQ = null;
     else { const j = nextOpen(game, S.cursor[game] || 0); if (j >= 0) S.cursor[game] = j; }
     save();
     toast(ok ? `+${pts} ${name}` : `${name} missed it`);
     if (ok) celebrate(false);
-    else if (!S.timedOut[qid]) drinkMiss(ti);   // a timeout already called the whole-team sip
+    else if (st || !S.timedOut[qid]) drinkMiss(ti);   // a timeout already called the whole-team sip
     checkGameOver(game);
     render();
   }
@@ -1874,7 +1952,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
       case "mark": mark(b.dataset.g, b.dataset.id, b.dataset.ok === "1"); break;
       case "turn-next": S.turn[b.dataset.g] = (turnTeam(b.dataset.g) + 1) % S.teams.length; save(); render(); break;
       case "lit-start": S.started[b.dataset.id] = true; save(); startTimer(b.dataset.id); render(); break;
-      case "lit-restart": startTimer(b.dataset.id); render(); break;
+      case "lit-restart": startTimer(b.dataset.id, activeSteal(b.dataset.g, b.dataset.id) ? STEAL_MS : TIMER_MS); render(); break;
+      case "steal": startSteal(b.dataset.g, b.dataset.id); break;
+      case "steal-none": stealNone(b.dataset.g, b.dataset.id); break;
+      case "skip-q": skipQ(b.dataset.g, b.dataset.id); break;
       case "award": award(b.dataset.g, b.dataset.id, Number(b.dataset.i)); break;
       case "step": {
         stopAll();
