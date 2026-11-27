@@ -779,9 +779,26 @@ td.best::after { content: " \2605"; color: var(--teal); }
     $("main").scrollTop = 0;
   }
 
+  // Full screen hides Safari's address bar and the iPad's clock strip (iPad Safari supports this; iPhone doesn't).
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const fsOK = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  function toggleFullscreen() {
+    const d = document.documentElement;
+    try {
+      if (fsEl()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+      const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d);
+      if (r && r.catch) r.catch(() => toast("Full screen isn't available here"));
+    } catch (e) { toast("Full screen isn't available here"); }
+  }
+  function fsButton() {
+    if (!fsOK()) return "";
+    const on = !!fsEl();
+    return `<button class="navbtn" data-act="fullscreen" aria-label="${on ? "Exit full screen" : "Full screen"}">${on ? "Exit full screen" : "Full screen"}</button>`;
+  }
+  ["fullscreenchange", "webkitfullscreenchange"].forEach(ev => document.addEventListener(ev, () => renderTop()));
   function renderTop() {
     const t = $("topbar");
-    if (!S) { t.innerHTML = '<div class="brand">Friendsgiving Game Night</div>'; return; }
+    if (!S) { t.innerHTML = `<div class="brand">Friendsgiving Game Night</div><span class="spacer"></span>${fsButton()}`; return; }
     const cur = S.screen;
     const nav = [
       ["players", "Players"], ["teams", "Teams"], ["hub", "Games"], ["results", "Scores"]
@@ -792,7 +809,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       return `<button class="navbtn" data-act="go" data-to="${id}"${on ? ' aria-current="page"' : ""}>${label}</button>`;
     }).join("");
     const undoBtn = S.history.length ? `<button class="navbtn" data-act="undo">Undo last</button>` : "";
-    t.innerHTML = `<div class="brand">Game Night${S.mode === "sample" ? "<small>Practice</small>" : ""}</div>${undoBtn}${navHtml}<button class="navbtn" data-act="home" aria-label="Back to start">Exit</button>`;
+    t.innerHTML = `<div class="brand">Game Night${S.mode === "sample" ? "<small>Practice</small>" : ""}</div>${undoBtn}${navHtml}${fsButton()}<button class="navbtn" data-act="home" aria-label="Back to start">Exit</button>`;
   }
 
   function renderScorebar() {
@@ -1771,6 +1788,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     switch (a) {
       case "home": stopAll(); clearDrinks(); S = null; render(); break;
       case "drink-ok": showDrink(); break;
+      case "fullscreen": toggleFullscreen(); break;
       case "sp-save-id": {
         const v = ($("sp-client").value || "").trim();
         if (!/^[A-Za-z0-9]{20,64}$/.test(v)) { toast("That doesn't look like a Client ID"); return; }
