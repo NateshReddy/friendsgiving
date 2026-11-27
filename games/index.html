@@ -503,7 +503,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "A Bollywood title translated word for word. The team on turn has 10 seconds to name the movie." },
     { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
     { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The start of a famous line. The team on turn has 10 seconds to finish it." },
-    { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The first 5 seconds of a song play. The team on turn has 10 seconds to name it." }
+    { id: "tunes", name: "Name the Tune", color: "#8B3DFF", desc: "The first 10 seconds of a song play. The team on turn has 10 seconds to name it." }
   ];
   const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
   const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
@@ -1162,7 +1162,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       return `<div class="qview">${head}${banner}
         <div class="card ready" style="border-top:14px solid ${g.color}">
           <div class="h-display" style="font-size:1.6rem">${esc(q.q)}</div>
-          <p class="lead" style="margin:0">${busy ? "Listen up." : "Spotify plays the first 5 seconds, then the 10 second clock starts."} Worth ${pts}.</p>
+          <p class="lead" style="margin:0">${busy ? "Listen up." : "Spotify plays the first 10 seconds, then the 10 second clock starts."} Worth ${pts}.</p>
           ${busy ? spListening(q) : `<div class="row"><button class="btn big green" data-act="sp-intro-first" data-id="${q.id}">Play intro</button>
             <button class="btn small" data-act="lit-start" data-id="${q.id}">Play it from my phone instead</button></div>`}
           ${spErrBox(q)}
@@ -1170,7 +1170,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     }
     if (!shown && !S.started[q.id]) {
       const readyText = isTune
-        ? `Host: play the first 5 seconds of <strong>tune #${i + 1}</strong> from your list, then start the timer.`
+        ? `Host: play the first 10 seconds of <strong>tune #${i + 1}</strong> from your list, then start the timer.`
         : txt.ready;
       return `<div class="qview">${head}${banner}
         <div class="card ready" style="border-top:14px solid ${g.color}">
@@ -1242,8 +1242,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
   const SP_AUTH_KEY = "fg-spotify-auth";
   const SP_PKCE_KEY = "fg-spotify-pkce";
   const SP_TRACKS_KEY = m => "fg-spotify-tracks-" + m;
-  const SP_SCOPES = "user-read-playback-state user-modify-playback-state";
-  const CLIP_MS = 5300;    // 5 seconds of music plus a little for Spotify to start
+  const SP_SCOPES = "user-read-playback-state user-modify-playback-state streaming user-read-email user-read-private";
+  const INTRO_MS = 10000;  // intro length
+  const APP_LAG_MS = 300;  // the Spotify app takes a moment to start; the game speaker reports when it starts
   const SONG_MS = 30000;   // "Play the song" after the reveal
   const SP_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, "");
 
@@ -1289,7 +1290,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       j = await r.json().catch(() => ({}));
     } catch (e) { return { p, msg: "Can't reach Spotify. Check the wifi" }; }
     if (!r.ok || !j.access_token) return { p, msg: "Spotify login didn't work: " + (j.error_description || j.error || r.status) };
-    spSet(SP_AUTH_KEY, Object.assign(spAuth(), { clientId: p.clientId, access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
+    spSet(SP_AUTH_KEY, Object.assign(spAuth(), { clientId: p.clientId, access: j.access_token, refresh: j.refresh_token, scope: j.scope || SP_SCOPES, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
     return { p, msg: "Spotify connected", ok: true };
   }
   let spRefreshing = null;
@@ -1309,7 +1310,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
         if (r.status === 400 || r.status === 401) spSet(SP_AUTH_KEY, { clientId: a.clientId, device: a.device });
         throw spErr("auth", "Spotify logged out. Connect again on the Games screen");
       }
-      spSet(SP_AUTH_KEY, Object.assign(spAuth(), { access: j.access_token, refresh: j.refresh_token || a.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
+      spSet(SP_AUTH_KEY, Object.assign(spAuth(), { access: j.access_token, refresh: j.refresh_token || a.refresh, scope: j.scope || a.scope, exp: Date.now() + (j.expires_in || 3600) * 1000 }));
       return j.access_token;
     })().finally(() => { spRefreshing = null; });
     return spRefreshing;
@@ -1343,7 +1344,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   // Only phones, tablets and computers: no Alexa/Echo speakers or "Everywhere" groups.
   async function spDevices() {
     const j = await spApi("GET", "/me/player/devices");
-    spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted
+    spDeviceList = ((j && j.devices) || []).filter(d => d.id && !d.is_restricted && d.id !== sdk.id && d.name !== "Game Night"
       && /^(tablet|smartphone|computer)$/i.test(d.type || "") && !/alexa|echo|everywhere/i.test(d.name || ""));
     spDevAt = Date.now();
     return spDeviceList;
@@ -1363,6 +1364,67 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return (a.picked && list.find(d => d.id === a.device)) || same.find(d => d.is_active) || same[0]
       || list.find(d => d.is_active) || list[0] || null;
   }
+  // Where the next clip plays: the game speaker unless the host picked a Spotify app, or the game speaker can't run.
+  function spTarget(list) {
+    const a = spAuth();
+    if (a.picked && a.device && a.device !== SDK_ID) return list.find(x => x.id === a.device) || { id: a.device };   // the host's pick, even if Spotify isn't listing it right now
+    if (sdkUsable()) return { id: SDK_ID, sdk: true };
+    return spPickDevice(list.filter(d => d.id !== SDK_ID));
+  }
+
+  // ---------- game speaker (Spotify Web Playback SDK) ----------
+  // The game page itself becomes a Spotify speaker, so the Spotify app doesn't have to stay playing.
+  // Safari only allows it after a tap: the player is created on the first tap and woken on every Spotify tap.
+  const SDK_ID = "game";
+  const sdk = { loading: false, loaded: false, player: null, id: null, ready: false, err: "", dead: false, waiters: [], playWaiters: [] };
+  function spHasStreaming() { return /\bstreaming\b/.test(spAuth().scope || ""); }
+  function sdkUsable() { return spConnected() && spHasStreaming() && !sdk.dead && (sdk.ready || sdk.loaded); }
+  function sdkLoad() {
+    if (sdk.loading || sdk.dead || !spConnected() || !spHasStreaming()) return;
+    sdk.loading = true;
+    window.onSpotifyWebPlaybackSDKReady = () => { sdk.loaded = true; refreshSpCardIfHub(); };
+    const el = document.createElement("script");
+    el.src = "https://sdk.scdn.co/spotify-player.js"; el.async = true;
+    el.onerror = () => { sdk.dead = true; sdk.err = "Couldn't load Spotify's player. Using the Spotify app instead."; refreshSpCardIfHub(); };
+    document.head.appendChild(el);
+  }
+  function sdkFail(msg, dead) {
+    if (dead) sdk.dead = true;
+    sdk.err = msg;
+    sdk.waiters.splice(0).forEach(f => f(false));
+    refreshSpCardIfHub();
+  }
+  function sdkGesture() {
+    if (!sdk.loaded || sdk.dead || !window.Spotify || !window.Spotify.Player) return;
+    if (!sdk.player) {
+      const pl = new window.Spotify.Player({ name: "Game Night", volume: 1, getOAuthToken: cb => { spToken().then(cb).catch(() => {}); } });
+      pl.addListener("ready", ({ device_id }) => { sdk.id = device_id; sdk.ready = true; sdk.err = ""; sdk.waiters.splice(0).forEach(f => f(true)); refreshSpCardIfHub(); });
+      pl.addListener("not_ready", () => { sdk.ready = false; });
+      pl.addListener("player_state_changed", st => { if (st && !st.paused) sdk.playWaiters.splice(0).forEach(f => f(true)); });
+      pl.addListener("initialization_error", ({ message }) => sdkFail("This browser can't play Spotify inside the game, so it uses the Spotify app instead. (" + message + ")", true));
+      pl.addListener("authentication_error", ({ message }) => sdkFail("Spotify login problem in the game speaker: " + message + ". Tap Reconnect.", false));
+      pl.addListener("account_error", ({ message }) => sdkFail("Spotify says the game speaker needs Premium. (" + message + ")", true));
+      pl.addListener("playback_error", ({ message }) => { sdk.err = "Spotify couldn't play: " + message; });
+      sdk.player = pl;
+      try { pl.connect(); } catch (e) { sdkFail("The game speaker didn't start. Using the Spotify app instead.", true); }
+    }
+    try { const r = sdk.player && sdk.player.activateElement && sdk.player.activateElement(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* older SDK */ }
+  }
+  function sdkWaitReady(ms) {
+    if (sdk.ready) return Promise.resolve(true);
+    if (sdk.dead || !sdk.player) return Promise.resolve(false);
+    return new Promise(res => { sdk.waiters.push(res); setTimeout(() => res(sdk.ready), ms); });
+  }
+  async function sdkWaitPlaying(ms) {
+    const heard = await new Promise(res => { sdk.playWaiters.push(res); setTimeout(() => res(false), ms); });
+    if (heard) return true;
+    try { const st = await sdk.player.getCurrentState(); return !!(st && !st.paused); } catch (e) { return false; }
+  }
+  function sdkReset() {
+    try { if (sdk.player) sdk.player.disconnect(); } catch (e) { /* gone */ }
+    Object.assign(sdk, { player: null, id: null, ready: false, err: "", waiters: [], playWaiters: [] });
+  }
+  function refreshSpCardIfHub() { if (S && S.screen === "hub" && document.querySelector(".spcard")) refreshSpCard(); }
 
   // Finding each tune on Spotify: search title + film/artist, prefer the original over remixes and covers.
   const SP_BAD = /\b(remix|lo-?fi|slowed|reverb|cover|karaoke|instrumental|reprise|unplugged|mashup|8d|sped|live|acoustic|female|recreated|mix)\b/i;
@@ -1400,12 +1462,13 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return c.list[c.i];
   }
 
-  // Playing: intro = 5 seconds then pause; song = up to 30 seconds after the reveal.
-  const clip = { q: null, phase: null, end: 0, ms: 0, t: null, int: null, err: "", errQ: null, gen: 0 };
+  // Playing: intro = 10 seconds then pause; song = up to 30 seconds after the reveal.
+  const clip = { q: null, phase: null, end: 0, ms: 0, t: null, int: null, err: "", errQ: null, gen: 0, sdk: false, dev: null };
   function clipClear() { clearTimeout(clip.t); clearInterval(clip.int); clip.t = null; clip.int = null; }
   async function spPause() {
-    const d = spAuth().device;
-    try { await spApi("PUT", "/me/player/pause" + (d ? "?device_id=" + encodeURIComponent(d) : "")); } catch (e) { /* already paused */ }
+    if (clip.sdk && sdk.player) { try { await sdk.player.pause(); return; } catch (e) { /* fall through to the API */ } }
+    const d = clip.sdk ? sdk.id : (clip.dev || spAuth().device);
+    try { await spApi("PUT", "/me/player/pause" + (d && d !== SDK_ID ? "?device_id=" + encodeURIComponent(d) : "")); } catch (e) { /* already paused */ }
   }
   function stopClip() {
     const playing = clip.phase === "intro" || clip.phase === "song";
@@ -1426,13 +1489,26 @@ td.best::after { content: " \2605"; color: var(--teal); }
     rerenderTune();
     try {
       const track = await spResolve(q, opts.next);
-      const dev = spPickDevice(await spDevices());
+      let list = [];
+      try { list = await spDevices(); } catch (e) { if (e.code !== "device") throw e; }
+      let dev = spTarget(list);
+      if (dev && dev.sdk) {
+        const ok = await sdkWaitReady(8000);
+        if (!ok) { dev = spPickDevice(list); if (!dev) throw spErr("sdk", (sdk.err || "The game speaker didn't start.") + " Tap Play intro again, or pick the Spotify app under Play on (Games screen)."); }
+      }
+      if (!dev) { const last = spAuth().lastApp; if (last) dev = { id: last }; }   // not listed, but it may still answer
       if (!dev) throw spErr("device", SP_NO_DEVICE);
-      spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: dev.id }));
       if (gen !== clip.gen) return;
-      await spApi("PUT", "/me/player/play?device_id=" + encodeURIComponent(dev.id), { uris: [track.uri], position_ms: 0 });
+      clip.sdk = !!dev.sdk; clip.dev = dev.sdk ? sdk.id : dev.id;
+      await spApi("PUT", "/me/player/play?device_id=" + encodeURIComponent(clip.dev), { uris: [track.uri], position_ms: 0 });
+      if (!dev.sdk) spSet(SP_AUTH_KEY, Object.assign(spAuth(), { lastApp: dev.id }));
+      let ms = opts.ms;
+      if (dev.sdk) {
+        const playing = await sdkWaitPlaying(5000);
+        if (!playing) { spPause(); throw spErr("sdk", "Spotify didn't start playing in the game. Tap Play intro again. If it still stays quiet, pick the Spotify app under Play on (Games screen)."); }
+      } else ms += APP_LAG_MS;
       if (gen !== clip.gen) { spPause(); return; }
-      clip.phase = opts.song ? "song" : "intro"; clip.ms = opts.ms; clip.end = Date.now() + opts.ms;
+      clip.phase = opts.song ? "song" : "intro"; clip.ms = ms; clip.end = Date.now() + ms;
       rerenderTune();
       clip.int = setInterval(tickClip, 100);
       clip.t = setTimeout(async () => {
@@ -1452,7 +1528,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function playIntro(q, how) {
     const restart = how !== "replay";
     if (restart) stopTimer();
-    spPlay(q, { ms: CLIP_MS, next: how === "next", then: restart ? () => {
+    spPlay(q, { ms: INTRO_MS, next: how === "next", then: restart ? () => {
       if (!S || q.id in S.done || S.revealed[q.id]) return;
       S.started[q.id] = true; save();
       startTimer(q.id);
@@ -1500,16 +1576,24 @@ td.best::after { content: " \2605"; color: var(--teal); }
         <div class="row"><input type="text" id="sp-client" placeholder="Client ID" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:220px">
           <button class="btn pink" data-act="sp-save-id">Save</button></div>`;
     } else if (!on) {
-      body = `<p style="margin:0">Plays Name the Tune intros through the Spotify app on this iPad, so the sound goes to the TV. Open Spotify on the iPad once before you start.</p>
+      body = `<p style="margin:0">Plays Name the Tune intros straight from the game on this iPad, so the sound goes to the TV. Needs Spotify Premium.</p>
         <div class="row"><button class="btn big green" data-act="sp-login">Connect Spotify</button>${SPOTIFY_CLIENT_ID ? "" : '<span class="spacer"></span><button class="btn small" data-act="sp-clear-id">Change Client ID</button>'}</div>`;
     } else {
-      const dev = spPickDevice(spDeviceList);
-      const opts = spDeviceList.map(d => `<option value="${esc(d.id)}"${dev && d.id === dev.id ? " selected" : ""}>${esc(d.name)} (${esc(d.type)})</option>`).join("");
-      body = `<p style="margin:0">${spUser ? `Connected as <strong>${esc(spUser)}</strong>. ` : ""}Name the Tune plays through the Spotify app on the device below.</p>
+      const target = spTarget(spDeviceList);
+      const here = { tablet: "This iPad", smartphone: "This phone", computer: "This computer" }[thisDeviceType()];
+      const gameOpt = spHasStreaming() && !sdk.dead ? `<option value="${SDK_ID}"${target && target.sdk ? " selected" : ""}>${here} (game speaker)</option>` : "";
+      const opts = gameOpt + spDeviceList.map(d => `<option value="${esc(d.id)}"${target && !target.sdk && d.id === target.id ? " selected" : ""}>${esc(d.name)} (Spotify app)</option>`).join("");
+      const upgrade = !spHasStreaming() ? `<div class="sperr" style="border-color:var(--green);background:#E3F6E8">Reconnect once so the game can play songs itself, without keeping the Spotify app playing.
+          <div class="row" style="margin-top:8px"><button class="btn green" data-act="sp-login">Reconnect Spotify</button></div></div>` : "";
+      const status = sdk.err ? `<div class="sperr">${esc(sdk.err)}</div>`
+        : spDevMsg ? `<div class="sperr">${esc(spDevMsg)}</div>`
+        : !opts ? `<p class="muted" style="margin:0">No speakers yet. On the iPad, open the Spotify app and start playing any song, then tap Refresh.</p>`
+        : target && target.sdk ? `<p class="muted" style="margin:0">${sdk.ready ? "Game speaker is ready." : "The game speaker switches on with your next tap."} The Spotify app doesn't need to stay open.</p>` : "";
+      body = `<p style="margin:0">${spUser ? `Connected as <strong>${esc(spUser)}</strong>.` : ""}</p>${upgrade}
         <div class="row"><label for="sp-device" style="font-weight:800">Play on</label>
-          <select id="sp-device"${spDeviceList.length ? "" : " disabled"}>${opts || "<option>No devices yet</option>"}</select>
+          <select id="sp-device"${opts ? "" : " disabled"}>${opts || "<option>No devices yet</option>"}</select>
           <button class="btn small" data-act="sp-devices">Refresh</button></div>
-        ${spDevMsg ? `<div class="sperr">${esc(spDevMsg)}</div>` : spDeviceList.length ? "" : `<p class="muted" style="margin:0">No speakers yet. On the iPad, open the Spotify app and start playing any song (leave it playing), then tap Refresh.</p>`}
+        ${status}
         <div class="row"><button class="btn" data-act="sp-check">Check songs</button><span class="spacer"></span><button class="btn small" data-act="sp-logout">Disconnect</button></div>
         <div id="sp-check-out" class="muted"></div>`;
     }
@@ -1681,6 +1765,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
 
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-act]");
+    if (!sdk.player || (b && /^sp-/.test(b.dataset.act || ""))) sdkGesture();   // Safari needs a tap to allow sound
     if (!b || b.disabled) return;
     const a = b.dataset.act;
     switch (a) {
@@ -1693,7 +1778,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       }
       case "sp-clear-id": spSet(SP_AUTH_KEY, null); refreshSpCard(); break;
       case "sp-login": spLogin(); break;
-      case "sp-logout": stopClip(); spSet(SP_AUTH_KEY, SPOTIFY_CLIENT_ID ? null : { clientId: spAuth().clientId }); spDeviceList = []; spDevAt = 0; spUser = ""; spDevMsg = ""; refreshSpCard(); toast("Spotify disconnected"); break;
+      case "sp-logout": stopClip(); sdkReset(); spSet(SP_AUTH_KEY, SPOTIFY_CLIENT_ID ? null : { clientId: spAuth().clientId }); spDeviceList = []; spDevAt = 0; spUser = ""; spDevMsg = ""; refreshSpCard(); toast("Spotify disconnected"); break;
       case "sp-devices": spHubRefresh(true); break;
       case "sp-check": spCheckSongs(); break;
       case "sp-intro-first": case "sp-intro": case "sp-next": {
@@ -1815,7 +1900,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     }
   });
   document.addEventListener("change", e => {
-    if (e.target.id === "sp-device") { spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: e.target.value, picked: true })); toast("Spotify will play on " + e.target.selectedOptions[0].textContent); }
+    if (e.target.id === "sp-device") { sdkGesture(); spSet(SP_AUTH_KEY, Object.assign(spAuth(), { device: e.target.value, picked: true })); toast("Spotify will play on " + e.target.selectedOptions[0].textContent); }
   });
   document.addEventListener("input", e => {
     const t = e.target;
@@ -1832,7 +1917,9 @@ td.best::after { content: " \2605"; color: var(--teal); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && S.screen === "teams") drawWheel(); });
 
   render();
+  sdkLoad();
   spHandleReturn().then(res => {
+    sdkLoad();
     if (!res) return;
     if (res.p && res.p.mode) { const v = load(res.p.mode); if (v) { S = v; if (res.p.screen) S.screen = res.p.screen; } }
     render(); toast(res.msg);
