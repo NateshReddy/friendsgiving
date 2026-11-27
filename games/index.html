@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Game Night">
+<meta name="theme-color" content="#FFC629">
+<meta name="robots" content="noindex">
+<title>Friendsgiving Game Night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Gabarito:wght@400;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<style>
+:root {
+  /* Layout: iPad landscape mirrored to a TV. Top bar, one big working area, team scores pinned at the bottom. */
+  --wall: #FFC629;
+  --ink: #26102E;
+  --paper: #FFF8EC;
+  --pink: #FF3D8B;
+  --teal: #11A69B;
+  --orange: #FF6B1A;
+  --purple: #8B3DFF;
+  --blue: #2F7CF6;
+  --green: #2E9E48;
+  --red: #D62839;
+  --pop: 5px 5px 0 var(--ink);
+  --font-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-body: "Gabarito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-marker: "Permanent Marker", "Marker Felt", "Comic Sans MS", cursive;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+html { background: var(--wall); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.4;
+  background: radial-gradient(rgba(38, 16, 46, 0.1) 1.6px, transparent 1.8px) 0 0 / 22px 22px, var(--wall);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+button { font: inherit; color: inherit; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--ink);
+  color: var(--wall);
+  border-bottom: 4px solid var(--pink);
+}
+.brand { font-family: var(--font-display); font-size: 1.25rem; margin-right: auto; white-space: nowrap; }
+.brand small { font-family: var(--font-body); font-weight: 800; font-size: 0.8rem; margin-left: 10px; padding: 2px 10px; background: var(--pink); color: #fff; border-radius: 999px; vertical-align: middle; }
+.navbtn {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--wall);
+  border: 2px solid rgba(255, 198, 41, 0.5);
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.navbtn[aria-current="page"] { background: var(--wall); color: var(--ink); border-color: var(--wall); }
+.navbtn:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen { max-width: 1200px; margin: 0 auto; padding: 24px 24px 40px; }
+
+/* ---------- score bar ---------- */
+.scorebar {
+  display: flex;
+  gap: 12px;
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 4px solid var(--ink);
+  overflow-x: auto;
+}
+.scorechip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 6px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--ink);
+  white-space: nowrap;
+}
+.scorechip .dot { width: 30px; height: 30px; border-radius: 50%; background: var(--c); border: 2.5px solid var(--ink); }
+.scorechip .nm { font-weight: 800; }
+.scorechip .pts { font-family: var(--font-display); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+
+/* ---------- shared ---------- */
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+.h-display { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; line-height: 1; }
+.lead { font-size: 1.15rem; margin: 8px 0 0; max-width: 60ch; }
+.card {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: 7px 7px 0 var(--ink);
+  padding: 22px;
+}
+.btn {
+  font-weight: 800;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 12px 22px;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+  min-height: 52px;
+}
+.btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.big { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; padding: 16px 28px; }
+.btn.pink { background: var(--pink); color: #fff; }
+.btn.teal { background: var(--teal); color: #fff; }
+.btn.ink { background: var(--ink); color: var(--wall); }
+.btn.small { min-height: 42px; padding: 8px 16px; font-size: 0.95rem; box-shadow: 3px 3px 0 var(--ink); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.spacer { flex: 1; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.chip.easy { background: #DDF5E3; }
+.chip.medium { background: #FFE9C2; }
+.chip.hard { background: #FFD7E5; }
+.muted { opacity: 0.7; }
+input[type="text"], textarea {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 12px 14px;
+  width: 100%;
+}
+input[type="text"]:focus-visible, textarea:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+textarea { min-height: 120px; resize: vertical; }
+
+/* ---------- start ---------- */
+.start { display: grid; gap: 28px; justify-items: center; text-align: center; padding-top: 30px; }
+.start .title { font-family: var(--font-display); font-size: clamp(3rem, 8vw, 6rem); line-height: 0.92; text-transform: uppercase; }
+.start .title span { display: block; -webkit-text-stroke: 3px var(--ink); text-shadow: 7px 7px 0 var(--ink); }
+.start .title .l1 { color: var(--pink); }
+.start .title .l2 { color: var(--paper); }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 380px)); gap: 24px; width: 100%; justify-content: center; }
+.mode { text-align: left; display: grid; gap: 12px; align-content: start; }
+.mode h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; text-transform: uppercase; }
+.mode p { margin: 0; }
+
+/* ---------- players ---------- */
+.two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: start; margin-top: 20px; }
+.names { display: flex; flex-wrap: wrap; gap: 10px; }
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 16px;
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.name button {
+  width: 34px; height: 34px;
+  border: 0; border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.2rem; font-weight: 800;
+}
+.name button:active { background: #FFD7E5; }
+.stack { display: grid; gap: 14px; }
+
+/* ---------- teams ---------- */
+.teams-layout { display: grid; grid-template-columns: minmax(0, 460px) 1fr; gap: 28px; align-items: start; margin-top: 18px; }
+.wheel-wrap { position: relative; display: grid; justify-items: center; gap: 16px; }
+.wheel-box { position: relative; width: 100%; max-width: 440px; aspect-ratio: 1; }
+#wheel { width: 100%; height: 100%; display: block; }
+.pointer {
+  position: absolute; top: -6px; left: 50%;
+  width: 0; height: 0;
+  margin-left: -18px;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 34px solid var(--ink);
+  filter: drop-shadow(0 3px 0 rgba(0,0,0,0.15));
+}
+.landed {
+  min-height: 2.6em;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+}
+.landed .who { color: var(--pink); }
+.team-cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.teamcol { border-top: 14px solid var(--c); }
+.teamcol input[type="text"] { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; padding: 8px 12px; text-transform: uppercase; }
+.members { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; min-height: 44px; }
+.member {
+  padding: 6px 14px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--c);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.teamcount { display: inline-flex; gap: 8px; }
+.seg { min-width: 56px; }
+.seg[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
+
+/* ---------- hub ---------- */
+.hub-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 20px; }
+.gamecard { display: grid; gap: 12px; align-content: start; border-top: 16px solid var(--c); }
+.gamecard h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; text-transform: uppercase; }
+.gamecard p { margin: 0; }
+.gamecard.off { opacity: 0.55; }
+.toggle { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; cursor: pointer; }
+.toggle .sw { width: 54px; height: 32px; border-radius: 999px; border: 3px solid var(--ink); background: #fff; position: relative; }
+.toggle .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); transition: left 0.15s; }
+.toggle[aria-checked="true"] .sw { background: var(--teal); }
+.toggle[aria-checked="true"] .sw::after { left: 25px; background: #fff; }
+.progress { height: 12px; border: 2.5px solid var(--ink); border-radius: 999px; background: #fff; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--c); }
+
+/* ---------- jeopardy ---------- */
+.board { display: grid; gap: 12px; margin-top: 18px; }
+.board .cat {
+  display: grid; place-items: center;
+  min-height: 84px; padding: 10px;
+  background: var(--ink); color: var(--wall);
+  border-radius: 14px;
+  font-family: var(--font-display); font-size: 1.05rem; text-align: center; text-transform: uppercase; line-height: 1.1;
+}
+.tile {
+  min-height: 92px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--pink);
+  cursor: pointer;
+}
+.tile:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.tile.used { background: var(--c, #ddd); color: rgba(255,255,255,0.9); box-shadow: none; font-size: 1rem; cursor: pointer; opacity: 0.85; }
+
+/* ---------- question view ---------- */
+.qview { display: grid; gap: 18px; margin-top: 2px; }
+.qmeta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-weight: 800; }
+.qtext {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.qtext.literal { font-family: var(--font-marker); font-weight: 400; }
+.answer {
+  padding: 18px 22px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: var(--ink);
+  color: var(--wall);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  line-height: 1.2;
+}
+.answer small { display: block; font-size: 1.1rem; font-weight: 600; color: var(--paper); margin-top: 6px; }
+.award { display: grid; gap: 10px; }
+.award .lbl { font-family: var(--font-display); font-size: 0.95rem; text-transform: uppercase; }
+.teambtn { background: var(--c); color: #fff; }
+.fb { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; padding: 6px 8px 6px 14px; border: 2.5px dashed var(--ink); border-radius: 999px; font-weight: 800; font-size: 0.95rem; }
+.thumb { width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; cursor: pointer; }
+.thumb svg { width: 24px; height: 24px; }
+.thumb[aria-pressed="true"].up { background: var(--teal); color: #fff; }
+.thumb[aria-pressed="true"].down { background: var(--pink); color: #fff; }
+.thumb:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+/* ---------- this or that ---------- */
+.tt { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.opt {
+  position: relative;
+  padding: 26px 22px;
+  border: 4px solid var(--ink);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 6px 6px 0 var(--ink);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  line-height: 1.15;
+  text-align: center;
+  min-height: 112px;
+  display: grid; place-items: center;
+}
+.opt .letter { position: absolute; top: -18px; left: 18px; padding: 2px 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--wall); font-family: var(--font-display); font-size: 1rem; }
+.opt.right { background: var(--teal); color: #fff; }
+.opt.wrong { opacity: 0.45; }
+.picks { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.pickrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border: 2.5px solid var(--ink); border-top: 10px solid var(--c); border-radius: 16px; background: #fff; }
+.pickrow .tn { display: flex; align-items: center; gap: 8px; width: 100%; font-weight: 800; }
+.pickrow .tn i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: 2px solid var(--ink); }
+.pickbtn { min-width: 84px; }
+.pickbtn[aria-pressed="true"] { background: var(--c); color: #fff; }
+.pickrow .res { margin-left: auto; font-weight: 800; }
+
+/* ---------- results ---------- */
+.winner { text-align: center; display: grid; gap: 10px; justify-items: center; margin: 10px 0 26px; }
+.winner .crown { font-family: var(--font-display); font-size: 1.1rem; }
+.winner .tname { font-family: var(--font-display); font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 1; text-transform: uppercase; color: var(--c); -webkit-text-stroke: 2.5px var(--ink); text-shadow: 5px 5px 0 var(--ink); }
+.winner .members-line { font-weight: 700; font-size: 1.1rem; }
+.table-wrap { overflow-x: auto; }
+table.scores { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; font-size: 1.15rem; }
+table.scores th, table.scores td { padding: 14px 16px; border-bottom: 2px solid rgba(38,16,46,0.15); text-align: right; font-variant-numeric: tabular-nums; }
+table.scores th:first-child, table.scores td:first-child { text-align: left; }
+table.scores thead th { background: var(--ink); color: var(--wall); font-family: var(--font-display); font-weight: 400; font-size: 0.95rem; text-transform: uppercase; }
+table.scores tfoot td { font-family: var(--font-display); font-size: 1.3rem; border-bottom: 0; background: var(--paper); }
+td.best { background: #E3F7EE; font-weight: 800; }
+td.best::after { content: " \2605"; color: var(--teal); }
+
+/* ---------- feedback ---------- */
+.fblist { display: grid; gap: 8px; margin-top: 12px; }
+.fbitem { display: flex; gap: 12px; align-items: baseline; padding: 10px 14px; background: #fff; border: 2px solid var(--ink); border-radius: 12px; }
+.fbitem .v { font-weight: 800; min-width: 74px; }
+.fbitem .v.up { color: var(--teal); }
+.fbitem .v.down { color: var(--red); }
+
+.toast {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
+  padding: 12px 22px; background: var(--ink); color: var(--wall);
+  border-radius: 999px; font-weight: 800; z-index: 50;
+}
+
+@media (max-width: 900px) {
+  .two-col, .teams-layout, .hub-grid, .modes { grid-template-columns: 1fr; }
+  .tt { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar" id="topbar"></header>
+<main id="main"><div class="screen" id="screen"></div></main>
+<footer class="scorebar" id="scorebar" hidden></footer>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="questions-sample.js"></script>
+<script src="questions-party.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const DEFAULT_PLAYERS = ["Swati", "Anushka", "Shivam Raj", "Vedanshu", "Akriti", "Milind", "Natesh", "Sanchit", "Shrey", "Janvi", "Akshat", "Sanika", "Shobhit"];
+  const TEAM_DEFAULTS = [
+    { name: "Team Masala", color: "#FF3D8B" },
+    { name: "Team Chutney", color: "#11A69B" },
+    { name: "Team Jalebi", color: "#FF6B1A" },
+    { name: "Team Tadka", color: "#8B3DFF" }
+  ];
+  const GAMES = [
+    { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Pick a category and a value. Harder questions are worth more." },
+    { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "Bollywood titles translated word for word. First team to name the movie scores." },
+    { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
+    { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The screen shows the start of a famous line. First team to finish it scores." }
+  ];
+  const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
+  const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+  const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- question banks ----------
+  function partyBank() {
+    if (window.FG_PARTY && typeof window.FG_PARTY === "object") return window.FG_PARTY;
+    if (typeof window.FG_PARTY_ENC === "string" && window.FG_PARTY_ENC) {
+      try { return JSON.parse(decodeURIComponent(escape(atob(window.FG_PARTY_ENC)))); } catch (e) { return null; }
+    }
+    return null;
+  }
+  const BANKS = { sample: window.FG_SAMPLE || null, party: partyBank() };
+  const bank = () => BANKS[S.mode];
+
+  // ---------- state ----------
+  const KEY = m => "fg-gamenight-" + m;
+  let S = null;
+  function fresh(mode) {
+    return {
+      mode,
+      screen: "players",
+      players: DEFAULT_PLAYERS.slice(),
+      teamCount: 3,
+      teams: TEAM_DEFAULTS.slice(0, 3).map(t => ({ name: t.name, color: t.color, members: [] })),
+      selected: { jeopardy: true, literal: true, thisthat: true, dialogue: true },
+      scores: {},
+      done: {},          // qid -> team index awarded (-1 = nobody)
+      picks: {},         // this-or-that: qid -> [ 'a' | 'b' | null per team ]
+      revealed: {},      // qid -> true
+      cursor: { literal: 0, thisthat: 0, dialogue: 0 },
+      openQ: null,       // jeopardy question open
+      history: [],
+      feedback: {},
+      notes: ""
+    };
+  }
+  function save() {
+    if (!S) return;
+    try { localStorage.setItem(KEY(S.mode), JSON.stringify(S)); } catch (e) { /* storage off */ }
+  }
+  function load(mode) {
+    try { const v = JSON.parse(localStorage.getItem(KEY(mode))); return v && v.mode === mode ? v : null; } catch (e) { return null; }
+  }
+
+  // ---------- helpers ----------
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { t.hidden = true; }, 2200);
+  }
+  function celebrate(big) {
+    if (REDUCED || typeof window.confetti !== "function") return;
+    try {
+      window.confetti({ particleCount: big ? 260 : 120, spread: big ? 110 : 80, startVelocity: big ? 55 : 40, origin: { y: 0.6 },
+        colors: ["#FF3D8B", "#FF6B1A", "#11A69B", "#FFC629", "#8B3DFF", "#2F7CF6"] });
+    } catch (e) { /* decoration only */ }
+  }
+  const THUMB_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10h4zM7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7"/></svg>';
+  const THUMB_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h4v11h-4zM17 14l-4 8a3 3 0 0 1-3-3v-4H4a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 5.4 3H17"/></svg>';
+
+  // ---------- questions ----------
+  function jeopardyQs() {
+    const b = bank(); if (!b || !b.jeopardy) return [];
+    return b.jeopardy.categories.flatMap((c, ci) => c.qs.map((q, ri) => Object.assign({ cat: c.name, ci, ri, value: b.jeopardy.values[ri] || LEVEL_POINTS[q.level] || 100 }, q)));
+  }
+  function listQs(game) {
+    const b = bank(); if (!b || !Array.isArray(b[game])) return [];
+    return b[game];
+  }
+  function gameQs(game) { return game === "jeopardy" ? jeopardyQs() : listQs(game); }
+  function qById(game, id) { return gameQs(game).find(q => q.id === id); }
+  function pointsFor(game, q) { return game === "jeopardy" ? q.value : (LEVEL_POINTS[q.level] || 100); }
+  function nextOpen(game, from) {
+    const qs = gameQs(game);
+    for (let k = 1; k <= qs.length; k++) {
+      const j = (from + k) % qs.length;
+      if (!(qs[j].id in S.done) && j !== from) return j;
+    }
+    return -1;
+  }
+  function playedCount(game) { return gameQs(game).filter(q => q.id in S.done).length; }
+
+  // ---------- scores ----------
+  function gameScore(game, ti) { return (S.scores[game] && S.scores[game][ti]) || 0; }
+  function totals() {
+    return S.teams.map((t, i) => GAMES.filter(g => S.selected[g.id]).reduce((n, g) => n + gameScore(g.id, i), 0));
+  }
+  function applyAward(game, qid, deltas, label) {
+    if (!S.scores[game]) S.scores[game] = S.teams.map(() => 0);
+    deltas.forEach((d, i) => { S.scores[game][i] = (S.scores[game][i] || 0) + d; });
+    const winner = deltas.findIndex(d => d > 0);
+    S.done[qid] = winner;
+    S.history.push({ game, qid, deltas, label });
+    save();
+  }
+  function undo() {
+    const h = S.history.pop();
+    if (!h) return;
+    h.deltas.forEach((d, i) => { S.scores[h.game][i] -= d; });
+    delete S.done[h.qid];
+    S.revealed[h.qid] = true;
+    if (h.game === "jeopardy") { S.openQ = h.qid; S.screen = "game:jeopardy"; }
+    else {
+      const idx = gameQs(h.game).findIndex(q => q.id === h.qid);
+      if (idx >= 0) S.cursor[h.game] = idx;
+      S.screen = "game:" + h.game;
+    }
+    save();
+    toast("Undid: " + h.label);
+    render();
+  }
+
+  // ---------- rendering ----------
+  function render() {
+    renderTop();
+    renderScorebar();
+    const sc = S ? S.screen : "start";
+    const el = $("screen");
+    if (sc === "start") el.innerHTML = viewStart();
+    else if (sc === "players") el.innerHTML = viewPlayers();
+    else if (sc === "teams") { el.innerHTML = viewTeams(); drawWheel(); }
+    else if (sc === "hub") el.innerHTML = viewHub();
+    else if (sc === "game:jeopardy") el.innerHTML = S.openQ ? viewJeopardyQ() : viewBoard();
+    else if (sc === "game:literal" || sc === "game:dialogue") el.innerHTML = viewCardGame(sc.slice(5));
+    else if (sc === "game:thisthat") el.innerHTML = viewThisThat();
+    else if (sc === "results") el.innerHTML = viewResults();
+    else if (sc === "feedback") el.innerHTML = viewFeedback();
+    $("main").scrollTop = 0;
+  }
+
+  function renderTop() {
+    const t = $("topbar");
+    if (!S) { t.innerHTML = '<div class="brand">Friendsgiving Game Night</div>'; return; }
+    const cur = S.screen;
+    const nav = [
+      ["players", "Players"], ["teams", "Teams"], ["hub", "Games"], ["results", "Scores"]
+    ];
+    if (S.mode === "sample") nav.push(["feedback", "Feedback"]);
+    const navHtml = nav.map(([id, label]) => {
+      const on = cur === id || (id === "hub" && cur.startsWith("game:"));
+      return `<button class="navbtn" data-act="go" data-to="${id}"${on ? ' aria-current="page"' : ""}>${label}</button>`;
+    }).join("");
+    const undoBtn = S.history.length ? `<button class="navbtn" data-act="undo">Undo last</button>` : "";
+    t.innerHTML = `<div class="brand">Game Night${S.mode === "sample" ? "<small>Practice</small>" : ""}</div>${undoBtn}${navHtml}<button class="navbtn" data-act="home" aria-label="Back to start">Exit</button>`;
+  }
+
+  function renderScorebar() {
+    const b = $("scorebar");
+    const show = S && S.teams.some(t => t.members.length) && ["hub", "results", "feedback"].concat(GAMES.map(g => "game:" + g.id)).includes(S.screen);
+    b.hidden = !show;
+    if (!show) return;
+    const tot = totals();
+    b.innerHTML = S.teams.map((t, i) => `<div class="scorechip" style="--c:${t.color}"><span class="dot"></span><span class="nm">${esc(t.name)}</span><span class="pts">${tot[i]}</span></div>`).join("");
+  }
+
+  // ---------- start ----------
+  function viewStart() {
+    const sampleSaved = load("sample");
+    const partySaved = load("party");
+    const partyReady = !!BANKS.party;
+    return `<div class="start">
+      <h1 class="title"><span class="l1">Game</span><span class="l2">Night</span></h1>
+      <p class="lead">Make teams, pick your games and keep score across the whole night.</p>
+      <div class="modes">
+        <div class="card mode">
+          <h2>Practice run</h2>
+          <p>Sample questions at every level, with thumbs up and down so you can say what you like. None of these are used on the night.</p>
+          <div class="row">
+            ${sampleSaved ? '<button class="btn pink" data-act="resume" data-mode="sample">Resume practice</button>' : ""}
+            <button class="btn ${sampleSaved ? "" : "pink"}" data-act="new" data-mode="sample">${sampleSaved ? "Start over" : "Start practice"}</button>
+          </div>
+        </div>
+        <div class="card mode">
+          <h2>Party night</h2>
+          <p>${partyReady ? "The real questions for Friday. Nobody has seen them yet." : "The real questions get added after your practice feedback."}</p>
+          <div class="row">
+            ${partyReady && partySaved ? '<button class="btn pink" data-act="resume" data-mode="party">Resume party</button>' : ""}
+            <button class="btn ${partyReady && !partySaved ? "pink" : ""}" data-act="new" data-mode="party"${partyReady ? "" : " disabled"}>${partySaved && partyReady ? "Start over" : "Start party"}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---------- players ----------
+  function viewPlayers() {
+    return `<div class="row"><div><h1 class="h-display" style="font-size:2.2rem">Who's playing</h1>
+      <p class="lead">${S.players.length} players. Tap × to remove someone.</p></div><span class="spacer"></span>
+      <button class="btn big pink" data-act="go" data-to="teams"${S.players.length < 2 ? " disabled" : ""}>Make teams</button></div>
+      <div class="two-col">
+        <div class="card"><div class="names">${S.players.map((p, i) => `<span class="name">${esc(p)}<button data-act="rm-player" data-i="${i}" aria-label="Remove ${esc(p)}">×</button></span>`).join("") || '<p class="muted">No players yet. Add some on the right.</p>'}</div></div>
+        <div class="stack">
+          <div class="card stack">
+            <label for="add-name" style="font-weight:800">Add a player</label>
+            <div class="row" style="flex-wrap:nowrap"><input type="text" id="add-name" maxlength="30" autocomplete="off" placeholder="Name"><button class="btn teal" data-act="add-player">Add</button></div>
+          </div>
+          <div class="card stack">
+            <label for="paste-names" style="font-weight:800">Paste a list</label>
+            <p style="margin:0" class="muted">Copy the names column from your sign-up sheet and paste it here, one per line.</p>
+            <textarea id="paste-names" placeholder="One name per line"></textarea>
+            <div class="row"><button class="btn teal" data-act="paste-players">Add these</button><button class="btn small" data-act="replace-players">Replace the list with these</button></div>
+          </div>
+          <button class="btn small" data-act="reset-players">Reset to the guest list</button>
+        </div>
+      </div>`;
+  }
+  function cleanName(s) { return String(s || "").replace(/\s+/g, " ").trim().slice(0, 30); }
+  function syncTeamsWithPlayers() {
+    S.teams.forEach(t => { t.members = t.members.filter(m => S.players.includes(m)); });
+  }
+
+  // ---------- teams + wheel ----------
+  let wheelRot = 0;
+  let spinning = false;
+  let lastLanded = null;
+  function unassigned() {
+    const taken = new Set(S.teams.flatMap(t => t.members));
+    return S.players.filter(p => !taken.has(p));
+  }
+  function setTeamCount(n) {
+    const old = S.teams;
+    S.teamCount = n;
+    S.teams = TEAM_DEFAULTS.slice(0, n).map((d, i) => old[i] ? old[i] : { name: d.name, color: d.color, members: [] });
+    // members of removed teams go back to the wheel
+    Object.keys(S.scores).forEach(g => { S.scores[g] = S.teams.map((t, i) => S.scores[g][i] || 0); });
+    Object.keys(S.picks).forEach(q => { S.picks[q] = S.teams.map((t, i) => S.picks[q][i] || null); });
+    save();
+  }
+  function viewTeams() {
+    const left = unassigned();
+    const counts = [2, 3, 4].map(n => `<button class="btn small seg" data-act="team-count" data-n="${n}" aria-pressed="${S.teamCount === n}">${n}</button>`).join("");
+    const landed = lastLanded ? `<span class="who">${esc(lastLanded.name)}</span> joins ${esc(S.teams[lastLanded.team].name)}` : (left.length ? "Spin to pick the next player" : "Everyone has a team");
+    return `<div class="row"><div><h1 class="h-display" style="font-size:2.2rem">Make teams</h1>
+      <p class="lead">Spin the wheel for each player, or fill everyone in one go. Tap a name in a team to move it to the next team.</p></div>
+      <span class="spacer"></span><button class="btn big pink" data-act="go" data-to="hub"${left.length ? " disabled" : ""}>Pick games</button></div>
+      <div class="teams-layout">
+        <div class="wheel-wrap card">
+          <div class="row" style="justify-content:center"><span style="font-weight:800">Teams:</span><span class="teamcount">${counts}</span></div>
+          <div class="wheel-box"><canvas id="wheel" aria-label="Name wheel with ${left.length} players left"></canvas><div class="pointer"></div></div>
+          <div class="landed" id="landed" aria-live="polite">${landed}</div>
+          <div class="row" style="justify-content:center">
+            <button class="btn big pink" data-act="spin"${left.length ? "" : " disabled"}>Spin</button>
+            <button class="btn" data-act="fill"${left.length ? "" : " disabled"}>Fill the rest</button>
+            <button class="btn small" data-act="clear-teams">Start teams over</button>
+          </div>
+        </div>
+        <div class="team-cols">${S.teams.map((t, i) => `
+          <div class="card teamcol" style="--c:${t.color}">
+            <input type="text" value="${esc(t.name)}" data-act="team-name" data-i="${i}" maxlength="24" aria-label="Team ${i + 1} name">
+            <div class="members">${t.members.map(m => `<button class="member" data-act="move" data-name="${esc(m)}" data-i="${i}">${esc(m)}</button>`).join("") || '<span class="muted">Nobody yet</span>'}</div>
+          </div>`).join("")}
+        </div>
+      </div>`;
+  }
+  function smallestTeam() {
+    let best = 0;
+    S.teams.forEach((t, i) => { if (t.members.length < S.teams[best].members.length) best = i; });
+    return best;
+  }
+  const WHEEL_COLORS = ["#FF3D8B", "#11A69B", "#FF6B1A", "#8B3DFF", "#2F7CF6", "#2E9E48"];
+  function drawWheel() {
+    const cv = $("wheel"); if (!cv) return;
+    const names = unassigned();
+    const size = cv.clientWidth || 440;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = size * dpr; cv.height = size * dpr;
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const r = size / 2, cx = r, cy = r;
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath(); ctx.arc(cx, cy, r - 2, 0, Math.PI * 2); ctx.fillStyle = "#26102E"; ctx.fill();
+    if (!names.length) {
+      ctx.beginPath(); ctx.arc(cx, cy, r - 10, 0, Math.PI * 2); ctx.fillStyle = "#FFF8EC"; ctx.fill();
+      ctx.fillStyle = "#26102E"; ctx.font = "400 22px Bungee, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("ALL SET", cx, cy);
+      return;
+    }
+    const seg = (Math.PI * 2) / names.length;
+    names.forEach((n, i) => {
+      const a0 = wheelRot + i * seg, a1 = a0 + seg;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r - 8, a0, a1); ctx.closePath();
+      ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length]; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = "#26102E"; ctx.stroke();
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(a0 + seg / 2);
+      ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      const fs = Math.max(13, Math.min(22, 300 / Math.max(names.length, 6)));
+      ctx.font = `800 ${fs}px Gabarito, sans-serif`;
+      const label = n.length > 14 ? n.slice(0, 13) + "…" : n;
+      ctx.fillText(label, r - 22, 0);
+      ctx.restore();
+    });
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2); ctx.fillStyle = "#FFC629"; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = "#26102E"; ctx.stroke();
+  }
+  function spin() {
+    if (spinning) return;
+    const names = unassigned();
+    if (!names.length) return;
+    const pick = Math.floor(Math.random() * names.length);
+    const seg = (Math.PI * 2) / names.length;
+    const pointer = -Math.PI / 2;
+    let target = pointer - (pick + 0.5) * seg;
+    const current = wheelRot;
+    while (target < current) target += Math.PI * 2;
+    target += Math.PI * 2 * (names.length > 1 ? 4 : 1);
+    const finish = () => {
+      wheelRot = target % (Math.PI * 2);
+      const team = smallestTeam();
+      S.teams[team].members.push(names[pick]);
+      lastLanded = { name: names[pick], team };
+      spinning = false;
+      save();
+      render();
+    };
+    if (REDUCED) { wheelRot = target; finish(); return; }
+    spinning = true;
+    document.querySelectorAll('[data-act="spin"],[data-act="fill"]').forEach(b => { b.disabled = true; });
+    $("landed").textContent = "Spinning…";
+    const start = performance.now(), dur = 2800, from = current;
+    const step = now => {
+      const t = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      wheelRot = from + (target - from) * e;
+      drawWheel();
+      if (t < 1) requestAnimationFrame(step); else finish();
+    };
+    requestAnimationFrame(step);
+  }
+  function fillRest() {
+    const names = unassigned().sort(() => Math.random() - 0.5);
+    names.forEach(n => { S.teams[smallestTeam()].members.push(n); });
+    lastLanded = null;
+    save(); render();
+  }
+
+  // ---------- hub ----------
+  function viewHub() {
+    const tot = totals();
+    return `<div class="row"><div><h1 class="h-display" style="font-size:2.2rem">Pick a game</h1>
+      <p class="lead">Turn games on or off for tonight. Points add up across every game that's on.</p></div>
+      <span class="spacer"></span><button class="btn big ink" data-act="go" data-to="results">Final scores</button></div>
+      <div class="hub-grid">${GAMES.map(g => {
+        const qs = gameQs(g.id);
+        const played = playedCount(g.id);
+        const on = !!S.selected[g.id];
+        const pct = qs.length ? Math.round(played / qs.length * 100) : 0;
+        const leader = (() => {
+          const sc = S.teams.map((t, i) => gameScore(g.id, i));
+          const max = Math.max(...sc);
+          if (!played || max <= 0) return "";
+          const lead = S.teams.filter((t, i) => sc[i] === max).map(t => t.name).join(" & ");
+          return `Leading: ${esc(lead)}`;
+        })();
+        return `<div class="card gamecard${on ? "" : " off"}" style="--c:${g.color}">
+          <div class="row"><h3>${g.name}</h3><span class="spacer"></span>
+            <button class="toggle" role="switch" aria-checked="${on}" data-act="toggle-game" data-g="${g.id}"><span>${on ? "Playing" : "Skipping"}</span><span class="sw"></span></button></div>
+          <p>${g.desc}</p>
+          <div class="progress" aria-label="${played} of ${qs.length} played"><i style="width:${pct}%"></i></div>
+          <div class="row"><span style="font-weight:800">${played} of ${qs.length} played</span><span class="muted">${leader}</span><span class="spacer"></span>
+            <button class="btn ${on ? "pink" : ""}" data-act="go" data-to="game:${g.id}"${on && qs.length ? "" : " disabled"}>${played && played < qs.length ? "Continue" : played === qs.length && qs.length ? "Review" : "Play"}</button></div>
+        </div>`;
+      }).join("")}</div>`;
+  }
+
+  // ---------- shared question bits ----------
+  function levelChip(q, pts) {
+    return `<span class="chip ${q.level}">${LEVEL_LABEL[q.level] || ""}${pts ? " · " + pts : ""}</span>`;
+  }
+  function feedbackBox(q) {
+    if (S.mode !== "sample") return "";
+    const v = S.feedback[q.id];
+    return `<span class="fb">Keep this kind of question?
+      <button class="thumb up" data-act="fb" data-id="${q.id}" data-v="up" aria-pressed="${v === "up"}" aria-label="Thumbs up">${THUMB_UP}</button>
+      <button class="thumb down" data-act="fb" data-id="${q.id}" data-v="down" aria-pressed="${v === "down"}" aria-label="Thumbs down">${THUMB_DOWN}</button></span>`;
+  }
+  function awardButtons(game, q, pts) {
+    const done = q.id in S.done;
+    if (done) {
+      const w = S.done[q.id];
+      return `<div class="award"><span class="lbl">${w >= 0 ? esc(S.teams[w].name) + " got " + pts : "Nobody got this one"}</span></div>`;
+    }
+    return `<div class="award"><span class="lbl">Who got it? +${pts}</span>
+      <div class="row">${S.teams.map((t, i) => `<button class="btn teambtn" style="--c:${t.color}" data-act="award" data-g="${game}" data-id="${q.id}" data-i="${i}">${esc(t.name)}</button>`).join("")}
+      <button class="btn" data-act="award" data-g="${game}" data-id="${q.id}" data-i="-1">Nobody</button></div></div>`;
+  }
+
+  // ---------- jeopardy ----------
+  function viewBoard() {
+    const b = bank().jeopardy;
+    const cols = b.categories.length;
+    let cells = b.categories.map(c => `<div class="cat">${esc(c.name)}</div>`).join("");
+    for (let r = 0; r < b.values.length; r++) {
+      cells += b.categories.map(c => {
+        const q = c.qs[r];
+        if (!q) return "<div></div>";
+        const val = b.values[r];
+        if (q.id in S.done) {
+          const w = S.done[q.id];
+          const col = w >= 0 ? S.teams[w].color : "#9A8F98";
+          return `<button class="tile used" style="--c:${col}" data-act="open" data-id="${q.id}" aria-label="${esc(c.name)} ${val}, played">${w >= 0 ? esc(S.teams[w].name) : "Nobody"}</button>`;
+        }
+        return `<button class="tile" data-act="open" data-id="${q.id}">${val}</button>`;
+      }).join("");
+    }
+    return `<div class="row"><h1 class="h-display" style="font-size:2rem">Desi Jeopardy</h1><span class="spacer"></span>
+      <span style="font-weight:800">${playedCount("jeopardy")} of ${jeopardyQs().length} played</span>
+      <button class="btn small" data-act="go" data-to="hub">All games</button></div>
+      <div class="board" style="grid-template-columns:repeat(${cols}, minmax(0,1fr))">${cells}</div>`;
+  }
+  function viewJeopardyQ() {
+    const q = qById("jeopardy", S.openQ);
+    if (!q) { S.openQ = null; return viewBoard(); }
+    const shown = !!S.revealed[q.id] || q.id in S.done;
+    return `<div class="qview">
+      <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
+        <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${levelChip(q, q.value)}</div></div>
+      <div class="card"><div class="qtext">${esc(q.q)}</div></div>
+      ${shown ? `<div class="answer">${esc(q.a)}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
+      ${shown ? `<div class="row" style="align-items:flex-start">${awardButtons("jeopardy", q, q.value)}${feedbackBox(q)}</div>` : ""}
+      ${q.id in S.done ? '<div class="row"><button class="btn big ink" data-act="close-q">Back to board</button></div>' : ""}
+    </div>`;
+  }
+
+  // ---------- literal + dialogue ----------
+  function viewCardGame(game) {
+    const qs = gameQs(game);
+    const g = GAMES.find(x => x.id === game);
+    if (!qs.length) return `<p>No questions here yet.</p>`;
+    let i = Math.min(Math.max(0, S.cursor[game] || 0), qs.length - 1);
+    const q = qs[i];
+    const pts = pointsFor(game, q);
+    const shown = !!S.revealed[q.id] || q.id in S.done;
+    const prompt = game === "literal" ? "Which Bollywood movie is this?" : "Finish the line";
+    const answer = game === "literal" ? esc(q.a) : `${esc(q.a)}<small>${esc(q.film)}</small>`;
+    const allDone = playedCount(game) === qs.length;
+    return `<div class="qview">
+      <div class="row"><h1 class="h-display" style="font-size:2rem">${g.name}</h1><span class="spacer"></span>
+        <span style="font-weight:800">${i + 1} of ${qs.length}</span>${levelChip(q, pts)}
+        <button class="btn small" data-act="go" data-to="hub">All games</button></div>
+      <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${prompt}</div>
+        <div class="qtext${game === "literal" ? " literal" : ""}">${esc(q.q)}</div></div>
+      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
+      ${shown ? `<div class="row" style="align-items:flex-start">${awardButtons(game, q, pts)}${feedbackBox(q)}</div>` : ""}
+      <div class="row"><button class="btn small" data-act="step" data-g="${game}" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>
+        <span class="spacer"></span>
+        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn ${q.id in S.done ? "big ink" : "small"}" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${q.id in S.done ? "Next question" : "Skip for now"}</button>`}</div>
+    </div>`;
+  }
+
+  // ---------- this or that ----------
+  function viewThisThat() {
+    const qs = gameQs("thisthat");
+    if (!qs.length) return `<p>No questions here yet.</p>`;
+    let i = Math.min(Math.max(0, S.cursor.thisthat || 0), qs.length - 1);
+    const q = qs[i];
+    const pts = pointsFor("thisthat", q);
+    const done = q.id in S.done;
+    const picks = S.picks[q.id] || S.teams.map(() => null);
+    const optCls = k => done ? (q.correct === k ? " right" : " wrong") : "";
+    const rows = S.teams.map((t, ti) => {
+      const p = picks[ti];
+      const res = done ? (p === q.correct ? `<span class="res" style="color:var(--teal)">+${pts}</span>` : `<span class="res muted">${p ? "0" : "No pick"}</span>`) : "";
+      return `<div class="pickrow" style="--c:${t.color}"><span class="tn"><i></i>${esc(t.name)}</span>
+        <button class="btn small pickbtn" data-act="pick" data-id="${q.id}" data-i="${ti}" data-k="a" aria-pressed="${p === "a"}"${done ? " disabled" : ""}>A</button>
+        <button class="btn small pickbtn" data-act="pick" data-id="${q.id}" data-i="${ti}" data-k="b" aria-pressed="${p === "b"}"${done ? " disabled" : ""}>B</button>${res}</div>`;
+    }).join("");
+    const allDone = playedCount("thisthat") === qs.length;
+    return `<div class="qview">
+      <div class="row"><h1 class="h-display" style="font-size:2rem">This or That</h1><span class="spacer"></span>
+        <span style="font-weight:800">${i + 1} of ${qs.length}</span>${levelChip(q, pts)}
+        <button class="btn small" data-act="go" data-to="hub">All games</button></div>
+      <div class="qtext">${esc(q.q)}</div>
+      <div class="tt"><div class="opt${optCls("a")}"><span class="letter">A</span>${esc(q.a)}</div><div class="opt${optCls("b")}"><span class="letter">B</span>${esc(q.b)}</div></div>
+      ${done && q.note ? `<div class="answer" style="font-size:1.4rem">${esc(q.note)}</div>` : ""}
+      <div class="picks">${rows}</div>
+      ${done ? "" : `<div class="row"><button class="btn big pink" data-act="tt-reveal" data-id="${q.id}">Reveal answer</button><span class="muted">Every team that picked right gets ${pts}.</span></div>`}
+      <div class="row"><button class="btn small" data-act="step" data-g="thisthat" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>${done ? feedbackBox(q) : '<span class="spacer"></span>'}
+        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn ${done ? "big ink" : "small"}" data-act="step" data-g="thisthat" data-d="1"${nextOpen("thisthat", i) < 0 ? " disabled" : ""}>${done ? "Next question" : "Skip for now"}</button>`}</div>
+    </div>`;
+  }
+
+  // ---------- results ----------
+  function viewResults() {
+    const games = GAMES.filter(g => S.selected[g.id]);
+    const tot = totals();
+    const max = Math.max(...tot);
+    const winners = S.teams.map((t, i) => i).filter(i => tot[i] === max);
+    const anyPoints = max > 0;
+    let head = "";
+    if (anyPoints) {
+      const w = winners.map(i => S.teams[i]);
+      head = `<div class="winner"><div class="crown">${winners.length > 1 ? "It's a tie" : "Tonight's champions"}</div>
+        ${w.map(t => `<div class="tname" style="--c:${t.color}">${esc(t.name)}</div><div class="members-line">${t.members.map(esc).join(", ")}</div>`).join("")}
+        <div class="chip" style="font-size:1.2rem;padding:6px 16px">${max} points</div></div>`;
+    } else {
+      head = `<div class="winner"><div class="crown">No points yet</div><p class="lead">Play a game and the scores show up here.</p></div>`;
+    }
+    const rows = games.map(g => {
+      const sc = S.teams.map((t, i) => gameScore(g.id, i));
+      const gm = Math.max(...sc);
+      return `<tr><td><strong>${g.name}</strong> <span class="muted">${playedCount(g.id)}/${gameQs(g.id).length}</span></td>${sc.map(v => `<td class="${gm > 0 && v === gm ? "best" : ""}">${v}</td>`).join("")}</tr>`;
+    }).join("");
+    return `<div class="row"><h1 class="h-display" style="font-size:2.2rem">Scoreboard</h1><span class="spacer"></span>
+      <button class="btn small" data-act="go" data-to="hub">Back to games</button>${anyPoints ? '<button class="btn pink" data-act="confetti">Celebrate</button>' : ""}</div>
+      ${head}
+      <div class="table-wrap"><table class="scores"><thead><tr><th>Game</th>${S.teams.map(t => `<th style="box-shadow:inset 0 -6px 0 ${t.color}">${esc(t.name)}</th>`).join("")}</tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td>Total</td>${tot.map(v => `<td>${v}</td>`).join("")}</tr></tfoot></table></div>
+      <p class="muted" style="margin-top:12px">A star marks who won each game.</p>`;
+  }
+
+  // ---------- feedback ----------
+  function feedbackLines() {
+    const all = GAMES.flatMap(g => gameQs(g.id).map(q => ({ g, q })));
+    return all.filter(x => S.feedback[x.q.id]).map(x => {
+      const qtxt = x.g.id === "thisthat" ? `${x.q.q} (${x.q.a} vs ${x.q.b})` : x.q.q;
+      return { v: S.feedback[x.q.id], game: x.g.name, level: LEVEL_LABEL[x.q.level], text: qtxt, cat: x.q.cat };
+    });
+  }
+  function feedbackText() {
+    const lines = feedbackLines();
+    const up = lines.filter(l => l.v === "up"), down = lines.filter(l => l.v === "down");
+    const fmt = l => `- ${l.game}${l.cat ? " / " + l.cat : ""} (${l.level}): ${l.text}`;
+    let out = "Game night practice feedback\n\nLiked:\n" + (up.map(fmt).join("\n") || "- none") + "\n\nDidn't like:\n" + (down.map(fmt).join("\n") || "- none");
+    if (S.notes.trim()) out += "\n\nNotes:\n" + S.notes.trim();
+    return out;
+  }
+  function viewFeedback() {
+    const lines = feedbackLines();
+    return `<div class="row"><div><h1 class="h-display" style="font-size:2.2rem">Your feedback</h1>
+      <p class="lead">${lines.length} questions rated. Copy this and paste it to Claude, and the real questions will follow what you liked.</p></div>
+      <span class="spacer"></span><button class="btn big pink" data-act="copy-fb">Copy feedback</button></div>
+      <div class="two-col">
+        <div class="card"><div class="fblist">${lines.map(l => `<div class="fbitem"><span class="v ${l.v}">${l.v === "up" ? "Keep" : "Drop"}</span><span><strong>${l.game}</strong> · ${l.level}<br>${esc(l.text)}</span></div>`).join("") || '<p class="muted">Nothing rated yet. Use the thumbs after each answer.</p>'}</div></div>
+        <div class="card stack"><label for="fb-notes" style="font-weight:800">Anything else?</label>
+          <textarea id="fb-notes" placeholder="Too easy, more cricket, fewer old movies, add questions about us...">${esc(S.notes)}</textarea>
+          <textarea id="fb-out" readonly hidden aria-label="Feedback text to copy"></textarea></div>
+      </div>`;
+  }
+
+  // ---------- actions ----------
+  function go(to) {
+    if (to === "teams") { syncTeamsWithPlayers(); lastLanded = null; }
+    if (to === "game:jeopardy") S.openQ = null;
+    if (to === "results" && S.screen !== "results") setTimeout(() => { if (totals().some(v => v > 0)) celebrate(true); }, 150);
+    S.screen = to;
+    save(); render();
+  }
+  function award(game, qid, ti) {
+    const q = qById(game, qid); if (!q || qid in S.done) return;
+    const pts = pointsFor(game, q);
+    const deltas = S.teams.map((t, i) => (i === ti ? pts : 0));
+    applyAward(game, qid, deltas, ti >= 0 ? `${pts} to ${S.teams[ti].name}` : "nobody scored");
+    if (ti >= 0) celebrate(false);
+    render();
+  }
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-act]");
+    if (!b || b.disabled) return;
+    const a = b.dataset.act;
+    switch (a) {
+      case "home": S = null; render(); break;
+      case "new": {
+        const m = b.dataset.mode;
+        if (m === "party" && !BANKS.party) return;
+        const prev = load(m);
+        S = fresh(m);
+        if (prev && prev.players) S.players = prev.players.slice();
+        save(); render(); break;
+      }
+      case "resume": S = load(b.dataset.mode) || fresh(b.dataset.mode); render(); break;
+      case "go": go(b.dataset.to); break;
+      case "undo": undo(); break;
+      case "rm-player": S.players.splice(Number(b.dataset.i), 1); syncTeamsWithPlayers(); save(); render(); break;
+      case "add-player": {
+        const n = cleanName($("add-name").value);
+        if (!n) return;
+        if (S.players.some(p => p.toLowerCase() === n.toLowerCase())) { toast(n + " is already on the list"); return; }
+        S.players.push(n); save(); render();
+        setTimeout(() => { const f = $("add-name"); if (f) f.focus(); }, 0);
+        break;
+      }
+      case "paste-players":
+      case "replace-players": {
+        const names = $("paste-names").value.split(/[\n,;\t]+/).map(cleanName).filter(Boolean);
+        if (!names.length) { toast("Paste some names first"); return; }
+        if (a === "replace-players") S.players = [];
+        let added = 0;
+        names.forEach(n => { if (!S.players.some(p => p.toLowerCase() === n.toLowerCase())) { S.players.push(n); added++; } });
+        syncTeamsWithPlayers(); save(); render(); toast(`Added ${added} ${added === 1 ? "name" : "names"}`);
+        break;
+      }
+      case "reset-players": S.players = DEFAULT_PLAYERS.slice(); syncTeamsWithPlayers(); save(); render(); break;
+      case "team-count": setTeamCount(Number(b.dataset.n)); lastLanded = null; render(); break;
+      case "spin": spin(); break;
+      case "fill": fillRest(); break;
+      case "clear-teams": S.teams.forEach(t => { t.members = []; }); lastLanded = null; save(); render(); break;
+      case "move": {
+        const from = Number(b.dataset.i), name = b.dataset.name;
+        const to = (from + 1) % S.teams.length;
+        S.teams[from].members = S.teams[from].members.filter(m => m !== name);
+        S.teams[to].members.push(name);
+        save(); render(); break;
+      }
+      case "toggle-game": S.selected[b.dataset.g] = !S.selected[b.dataset.g]; save(); render(); break;
+      case "open": S.openQ = b.dataset.id; save(); render(); break;
+      case "close-q": S.openQ = null; save(); render(); break;
+      case "reveal": S.revealed[b.dataset.id] = true; save(); render(); break;
+      case "award": award(b.dataset.g, b.dataset.id, Number(b.dataset.i)); break;
+      case "step": {
+        const g = b.dataset.g, n = gameQs(g).length, cur = S.cursor[g] || 0;
+        if (Number(b.dataset.d) > 0) { const j = nextOpen(g, cur); if (j >= 0) S.cursor[g] = j; }
+        else S.cursor[g] = Math.max(0, cur - 1);
+        save(); render(); break;
+      }
+      case "pick": {
+        const id = b.dataset.id, ti = Number(b.dataset.i), k = b.dataset.k;
+        if (id in S.done) return;
+        const p = S.picks[id] || S.teams.map(() => null);
+        p[ti] = p[ti] === k ? null : k;
+        S.picks[id] = p; save(); render(); break;
+      }
+      case "tt-reveal": {
+        const q = qById("thisthat", b.dataset.id); if (!q || q.id in S.done) return;
+        const pts = pointsFor("thisthat", q);
+        const p = S.picks[q.id] || S.teams.map(() => null);
+        S.picks[q.id] = p;
+        const deltas = S.teams.map((t, i) => (p[i] === q.correct ? pts : 0));
+        const winners = S.teams.filter((t, i) => deltas[i] > 0).map(t => t.name);
+        applyAward("thisthat", q.id, deltas, winners.length ? `${pts} to ${winners.join(", ")}` : "nobody scored");
+        if (winners.length) celebrate(false);
+        render(); break;
+      }
+      case "fb": {
+        const id = b.dataset.id, v = b.dataset.v;
+        S.feedback[id] = S.feedback[id] === v ? undefined : v;
+        if (!S.feedback[id]) delete S.feedback[id];
+        save();
+        document.querySelectorAll(`[data-act="fb"][data-id="${id}"]`).forEach(x => x.setAttribute("aria-pressed", String(S.feedback[id] === x.dataset.v)));
+        break;
+      }
+      case "copy-fb": {
+        const text = feedbackText();
+        const out = $("fb-out");
+        const fallback = () => { out.value = text; out.hidden = false; out.focus(); out.select(); toast("Select the text and copy it"); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast("Feedback copied"), fallback);
+        else fallback();
+        break;
+      }
+      case "confetti": celebrate(true); break;
+    }
+  });
+  document.addEventListener("input", e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.act === "team-name") {
+      S.teams[Number(t.dataset.i)].name = t.value.slice(0, 24) || TEAM_DEFAULTS[Number(t.dataset.i)].name;
+      save();
+    } else if (t.id === "fb-notes") { S.notes = t.value.slice(0, 2000); save(); }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.id === "add-name") { e.preventDefault(); document.querySelector('[data-act="add-player"]').click(); }
+  });
+  window.addEventListener("resize", () => { if (S && S.screen === "teams") drawWheel(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && S.screen === "teams") drawWheel(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
