@@ -305,6 +305,33 @@ textarea { min-height: 120px; resize: vertical; }
 .thumb[aria-pressed="true"].down { background: var(--pink); color: #fff; }
 .thumb:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 
+.turnbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px 10px 16px;
+  background: var(--c); color: #fff;
+  border: 3px solid var(--ink); border-radius: 18px;
+  box-shadow: 4px 4px 0 var(--ink);
+  margin-top: 14px;
+}
+.turnbar .tdot { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--ink); flex: none; }
+.turnbar .tmsg { font-size: 1.35rem; font-weight: 700; }
+.turnbar .tmsg strong { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; }
+.turnbar .btn { color: var(--ink); }
+.qview > .turnbar { margin-top: 0; }
+.ready { display: grid; gap: 16px; justify-items: start; }
+.timerrow { display: flex; align-items: center; gap: 18px; }
+.timer {
+  width: 96px; height: 96px; flex: none;
+  display: grid; place-items: center;
+  border: 5px solid var(--ink); border-radius: 50%;
+  background: var(--paper);
+  font-family: var(--font-display); font-size: 2.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.timer.low { background: var(--pink); color: #fff; }
+.tbar { flex: 1; height: 22px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; overflow: hidden; }
+.tbar > i { display: block; height: 100%; background: var(--blue); }
+
 /* ---------- this or that ---------- */
 .tt { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .opt {
@@ -388,10 +415,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
     { name: "From the Village", color: "#8B3DFF" }
   ];
   const GAMES = [
-    { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Pick a category and a value. Harder questions are worth more." },
-    { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "Bollywood titles translated word for word. First team to name the movie scores." },
+    { id: "jeopardy", name: "Desi Jeopardy", color: "#FF3D8B", desc: "Teams take turns picking a category and a value. Get it right to score it." },
+    { id: "literal", name: "Lost in Translation", color: "#2F7CF6", desc: "Bollywood titles translated word for word. 10 seconds, and the first team to shout the movie scores." },
     { id: "thisthat", name: "This or That", color: "#11A69B", desc: "Every team picks A or B. Every team that gets it right scores." },
-    { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "The screen shows the start of a famous line. First team to finish it scores." }
+    { id: "dialogue", name: "Finish the Dialogue", color: "#FF6B1A", desc: "Teams take turns finishing a famous line. Get it right to score." }
   ];
   const LEVEL_POINTS = { easy: 100, medium: 200, hard: 300 };
   const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
@@ -409,7 +436,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
   const bank = () => BANKS[S.mode];
 
   // ---------- state ----------
-  const KEY = m => "fg-gamenight-" + m;
+  const KEY = m => "fg-gamenight-v2-" + m;
   let S = null;
   function fresh(mode) {
     return {
@@ -424,6 +451,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
       picks: {},         // this-or-that: qid -> [ 'a' | 'b' | null per team ]
       revealed: {},      // qid -> true
       cursor: { literal: 0, thisthat: 0, dialogue: 0 },
+      turn: { jeopardy: 0, dialogue: 0 },
+      started: {},       // lost in translation: qid -> title shown
       openQ: null,       // jeopardy question open
       history: [],
       feedback: {},
@@ -435,7 +464,13 @@ td.best::after { content: " \2605"; color: var(--teal); }
     try { localStorage.setItem(KEY(S.mode), JSON.stringify(S)); } catch (e) { /* storage off */ }
   }
   function load(mode) {
-    try { const v = JSON.parse(localStorage.getItem(KEY(mode))); return v && v.mode === mode ? v : null; } catch (e) { return null; }
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY(mode)));
+      if (!v || v.mode !== mode) return null;
+      v.turn = v.turn || { jeopardy: 0, dialogue: 0 };
+      v.started = v.started || {};
+      return v;
+    } catch (e) { return null; }
   }
 
   // ---------- helpers ----------
@@ -484,12 +519,12 @@ td.best::after { content: " \2605"; color: var(--teal); }
   function totals() {
     return S.teams.map((t, i) => GAMES.filter(g => S.selected[g.id]).reduce((n, g) => n + gameScore(g.id, i), 0));
   }
-  function applyAward(game, qid, deltas, label) {
+  function applyAward(game, qid, deltas, label, meta) {
     if (!S.scores[game]) S.scores[game] = S.teams.map(() => 0);
     deltas.forEach((d, i) => { S.scores[game][i] = (S.scores[game][i] || 0) + d; });
     const winner = deltas.findIndex(d => d > 0);
     S.done[qid] = winner;
-    S.history.push({ game, qid, deltas, label });
+    S.history.push(Object.assign({ game, qid, deltas, label }, meta || {}));
     save();
   }
   function undo() {
@@ -498,6 +533,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     h.deltas.forEach((d, i) => { S.scores[h.game][i] -= d; });
     delete S.done[h.qid];
     S.revealed[h.qid] = true;
+    if (typeof h.turnBefore === "number") S.turn[h.game] = h.turnBefore;
     if (h.game === "jeopardy") { S.openQ = h.qid; S.screen = "game:jeopardy"; }
     else {
       const idx = gameQs(h.game).findIndex(q => q.id === h.qid);
@@ -772,6 +808,18 @@ td.best::after { content: " \2605"; color: var(--teal); }
       <button class="thumb up" data-act="fb" data-id="${q.id}" data-v="up" aria-pressed="${v === "up"}" aria-label="Thumbs up">${THUMB_UP}</button>
       <button class="thumb down" data-act="fb" data-id="${q.id}" data-v="down" aria-pressed="${v === "down"}" aria-label="Thumbs down">${THUMB_DOWN}</button></span>`;
   }
+  function turnTeam(game) { return S.turn[game] % S.teams.length; }
+  function turnBanner(game, msg) {
+    const t = S.teams[turnTeam(game)];
+    return `<div class="turnbar" style="--c:${t.color}"><span class="tdot"></span><span class="tmsg"><strong>${esc(t.name)}</strong> ${msg}</span><span class="spacer"></span><button class="btn small" data-act="turn-next" data-g="${game}">Skip to next team</button></div>`;
+  }
+  function markButtons(game, q, pts) {
+    if (q.id in S.done) return "";
+    const t = S.teams[turnTeam(game)];
+    return `<div class="award"><span class="lbl">Did ${esc(t.name)} get it?</span>
+      <div class="row"><button class="btn big teal" data-act="mark" data-g="${game}" data-id="${q.id}" data-ok="1">Got it +${pts}</button>
+      <button class="btn big" data-act="mark" data-g="${game}" data-id="${q.id}" data-ok="0">Missed</button></div></div>`;
+  }
   function awardButtons(game, q, pts) {
     const done = q.id in S.done;
     if (done) {
@@ -796,7 +844,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
         if (q.id in S.done) {
           const w = S.done[q.id];
           const col = w >= 0 ? S.teams[w].color : "#9A8F98";
-          return `<button class="tile used" style="--c:${col}" data-act="open" data-id="${q.id}" aria-label="${esc(c.name)} ${val}, played">${w >= 0 ? esc(S.teams[w].name) : "Nobody"}</button>`;
+          return `<button class="tile used" style="--c:${col}" data-act="open" data-id="${q.id}" aria-label="${esc(c.name)} ${val}, played">${w >= 0 ? esc(S.teams[w].name) : "Missed"}</button>`;
         }
         return `<button class="tile" data-act="open" data-id="${q.id}">${val}</button>`;
       }).join("");
@@ -804,6 +852,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return `<div class="row"><h1 class="h-display" style="font-size:2rem">Desi Jeopardy</h1><span class="spacer"></span>
       <span style="font-weight:800">${playedCount("jeopardy")} of ${jeopardyQs().length} played</span>
       <button class="btn small" data-act="go" data-to="hub">All games</button></div>
+      ${playedCount("jeopardy") < jeopardyQs().length ? turnBanner("jeopardy", "pick a category and a value") : ""}
       <div class="board" style="grid-template-columns:repeat(${cols}, minmax(0,1fr))">${cells}</div>`;
   }
   function viewJeopardyQ() {
@@ -813,9 +862,10 @@ td.best::after { content: " \2605"; color: var(--teal); }
     return `<div class="qview">
       <div class="row"><button class="btn small" data-act="close-q">Back to board</button><span class="spacer"></span>
         <div class="qmeta"><span class="chip">${esc(q.cat)}</span>${levelChip(q, q.value)}</div></div>
+      ${q.id in S.done ? "" : turnBanner("jeopardy", "is answering")}
       <div class="card"><div class="qtext">${esc(q.q)}</div></div>
       ${shown ? `<div class="answer">${esc(q.a)}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
-      ${shown ? `<div class="row" style="align-items:flex-start">${awardButtons("jeopardy", q, q.value)}${feedbackBox(q)}</div>` : ""}
+      ${shown ? `<div class="row" style="align-items:flex-start">${q.id in S.done ? awardButtons("jeopardy", q, q.value) : markButtons("jeopardy", q, q.value)}${feedbackBox(q)}</div>` : ""}
       ${q.id in S.done ? '<div class="row"><button class="btn big ink" data-act="close-q">Back to board</button></div>' : ""}
     </div>`;
   }
@@ -828,22 +878,72 @@ td.best::after { content: " \2605"; color: var(--teal); }
     let i = Math.min(Math.max(0, S.cursor[game] || 0), qs.length - 1);
     const q = qs[i];
     const pts = pointsFor(game, q);
-    const shown = !!S.revealed[q.id] || q.id in S.done;
-    const prompt = game === "literal" ? "Which Bollywood movie is this?" : "Finish the line";
-    const answer = game === "literal" ? esc(q.a) : `${esc(q.a)}<small>${esc(q.film)}</small>`;
+    const done = q.id in S.done;
+    const shown = !!S.revealed[q.id] || done;
     const allDone = playedCount(game) === qs.length;
-    return `<div class="qview">
-      <div class="row"><h1 class="h-display" style="font-size:2rem">${g.name}</h1><span class="spacer"></span>
+    const isLit = game === "literal";
+    const prompt = isLit ? "Which Bollywood movie is this?" : "Finish the line";
+    const answer = isLit ? esc(q.a) : `${esc(q.a)}<small>${esc(q.film)}</small>`;
+    const head = `<div class="row"><h1 class="h-display" style="font-size:2rem">${g.name}</h1><span class="spacer"></span>
         <span style="font-weight:800">${i + 1} of ${qs.length}</span>${levelChip(q, pts)}
-        <button class="btn small" data-act="go" data-to="hub">All games</button></div>
-      <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${prompt}</div>
-        <div class="qtext${game === "literal" ? " literal" : ""}">${esc(q.q)}</div></div>
-      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
-      ${shown ? `<div class="row" style="align-items:flex-start">${awardButtons(game, q, pts)}${feedbackBox(q)}</div>` : ""}
-      <div class="row"><button class="btn small" data-act="step" data-g="${game}" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>
+        <button class="btn small" data-act="go" data-to="hub">All games</button></div>`;
+    const nav = `<div class="row"><button class="btn small" data-act="step" data-g="${game}" data-d="-1"${i === 0 ? " disabled" : ""}>Previous</button>
         <span class="spacer"></span>
-        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn ${q.id in S.done ? "big ink" : "small"}" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${q.id in S.done ? "Next question" : "Skip for now"}</button>`}</div>
+        ${allDone ? `<button class="btn big ink" data-act="go" data-to="hub">Done, back to games</button>` : `<button class="btn small" data-act="step" data-g="${game}" data-d="1"${nextOpen(game, i) < 0 ? " disabled" : ""}>${done ? "Next question" : "Skip for now"}</button>`}</div>`;
+
+    // Lost in Translation: title stays hidden until the timer starts.
+    if (isLit && !shown && !S.started[q.id]) {
+      return `<div class="qview">${head}
+        <div class="card ready" style="border-top:14px solid ${g.color}">
+          <div class="h-display" style="font-size:1.6rem">Get ready</div>
+          <p class="lead" style="margin:0">The title shows with a 10 second timer. First team to shout the movie wins ${pts}.</p>
+          <button class="btn big pink" data-act="lit-start" data-id="${q.id}">Show title and start</button>
+        </div>${nav}</div>`;
+    }
+    let timerHtml = "";
+    if (isLit && !shown) {
+      const running = timer.q === q.id;
+      const left = running ? Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)) : 0;
+      const pct = running ? Math.max(0, (timer.end - Date.now()) / (TIMER_MS) * 100) : 0;
+      timerHtml = `<div class="timerrow"><div class="timer${left <= 3 ? " low" : ""}" id="timer">${running ? left : "–"}</div>
+        <div class="tbar"><i id="tbar" style="width:${pct}%"></i></div>
+        <button class="btn small" data-act="lit-restart" data-id="${q.id}">${running ? "Restart timer" : "Start timer"}</button></div>`;
+    }
+    const after = shown
+      ? `<div class="row" style="align-items:flex-start">${isLit ? awardButtons(game, q, pts) : (done ? awardButtons(game, q, pts) : markButtons(game, q, pts))}${feedbackBox(q)}</div>`
+      : "";
+    return `<div class="qview">${head}
+      ${!isLit && !done ? turnBanner(game, "is up") : ""}
+      <div class="card" style="border-top:14px solid ${g.color}"><div class="muted" style="font-weight:800;margin-bottom:8px">${prompt}</div>
+        <div class="qtext${isLit ? " literal" : ""}">${esc(q.q)}</div></div>
+      ${timerHtml}
+      ${shown ? `<div class="answer">${answer}</div>` : `<div class="row"><button class="btn big pink" data-act="reveal" data-id="${q.id}">Reveal answer</button></div>`}
+      ${after}
+      ${nav}
     </div>`;
+  }
+
+  // ---------- 10 second timer ----------
+  const TIMER_MS = 10000;
+  const timer = { q: null, end: 0, int: null };
+  function stopTimer() { clearInterval(timer.int); timer.int = null; timer.q = null; }
+  function startTimer(qid) {
+    stopTimer();
+    timer.q = qid; timer.end = Date.now() + TIMER_MS;
+    timer.int = setInterval(() => {
+      const ms = timer.end - Date.now();
+      const left = Math.max(0, Math.ceil(ms / 1000));
+      const el = $("timer"), bar = $("tbar");
+      if (el) { el.textContent = left; el.classList.toggle("low", left <= 3); }
+      if (bar) bar.style.width = Math.max(0, ms / TIMER_MS * 100) + "%";
+      if (ms <= 0) {
+        const q = timer.q;
+        stopTimer();
+        if (S && q && !(q in S.done)) { S.revealed[q] = true; save(); }
+        toast("Time's up");
+        if (S && S.screen === "game:literal") render();
+      }
+    }, 100);
   }
 
   // ---------- this or that ----------
@@ -938,6 +1038,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
 
   // ---------- actions ----------
   function go(to) {
+    stopTimer();
     if (to === "teams") { syncTeamsWithPlayers(); lastLanded = null; }
     if (to === "game:jeopardy") S.openQ = null;
     if (to === "results" && S.screen !== "results") setTimeout(() => { if (totals().some(v => v > 0)) celebrate(true); }, 150);
@@ -949,7 +1050,28 @@ td.best::after { content: " \2605"; color: var(--teal); }
     const pts = pointsFor(game, q);
     const deltas = S.teams.map((t, i) => (i === ti ? pts : 0));
     applyAward(game, qid, deltas, ti >= 0 ? `${pts} to ${S.teams[ti].name}` : "nobody scored");
+    if (game === "literal") {
+      const j = nextOpen(game, S.cursor[game] || 0);
+      if (j >= 0) S.cursor[game] = j;
+      save();
+      toast(ti >= 0 ? `+${pts} ${S.teams[ti].name}` : "Nobody got it");
+    }
     if (ti >= 0) celebrate(false);
+    render();
+  }
+  function mark(game, qid, ok) {
+    const q = qById(game, qid); if (!q || qid in S.done) return;
+    const pts = pointsFor(game, q);
+    const ti = turnTeam(game);
+    const name = S.teams[ti].name;
+    const deltas = S.teams.map((t, i) => (ok && i === ti ? pts : 0));
+    applyAward(game, qid, deltas, ok ? `${pts} to ${name}` : `${name} missed`, { turnBefore: S.turn[game] });
+    S.turn[game] = (ti + 1) % S.teams.length;
+    if (game === "jeopardy") S.openQ = null;
+    else { const j = nextOpen(game, S.cursor[game] || 0); if (j >= 0) S.cursor[game] = j; }
+    save();
+    toast(ok ? `+${pts} ${name}` : `${name} missed it`);
+    if (ok) celebrate(false);
     render();
   }
 
@@ -958,7 +1080,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
     if (!b || b.disabled) return;
     const a = b.dataset.act;
     switch (a) {
-      case "home": S = null; render(); break;
+      case "home": stopTimer(); S = null; render(); break;
       case "new": {
         const m = b.dataset.mode;
         if (m === "party" && !BANKS.party) return;
@@ -969,7 +1091,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
       }
       case "resume": S = load(b.dataset.mode) || fresh(b.dataset.mode); render(); break;
       case "go": go(b.dataset.to); break;
-      case "undo": undo(); break;
+      case "undo": stopTimer(); undo(); break;
       case "rm-player": S.players.splice(Number(b.dataset.i), 1); syncTeamsWithPlayers(); save(); render(); break;
       case "add-player": {
         const n = cleanName($("add-name").value);
@@ -1004,9 +1126,14 @@ td.best::after { content: " \2605"; color: var(--teal); }
       case "toggle-game": S.selected[b.dataset.g] = !S.selected[b.dataset.g]; save(); render(); break;
       case "open": S.openQ = b.dataset.id; save(); render(); break;
       case "close-q": S.openQ = null; save(); render(); break;
-      case "reveal": S.revealed[b.dataset.id] = true; save(); render(); break;
+      case "reveal": if (timer.q === b.dataset.id) stopTimer(); S.revealed[b.dataset.id] = true; save(); render(); break;
+      case "mark": mark(b.dataset.g, b.dataset.id, b.dataset.ok === "1"); break;
+      case "turn-next": S.turn[b.dataset.g] = (turnTeam(b.dataset.g) + 1) % S.teams.length; save(); render(); break;
+      case "lit-start": S.started[b.dataset.id] = true; save(); startTimer(b.dataset.id); render(); break;
+      case "lit-restart": startTimer(b.dataset.id); render(); break;
       case "award": award(b.dataset.g, b.dataset.id, Number(b.dataset.i)); break;
       case "step": {
+        stopTimer();
         const g = b.dataset.g, n = gameQs(g).length, cur = S.cursor[g] || 0;
         if (Number(b.dataset.d) > 0) { const j = nextOpen(g, cur); if (j >= 0) S.cursor[g] = j; }
         else S.cursor[g] = Math.max(0, cur - 1);
