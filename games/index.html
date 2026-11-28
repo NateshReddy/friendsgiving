@@ -486,7 +486,7 @@ td.best::after { content: " \2605"; color: var(--teal); }
 <div class="drink" id="drink" role="dialog" aria-modal="true" aria-labelledby="drink-h" hidden></div>
 
 <script src="questions-sample.js"></script>
-<script src="questions-party.js"></script>
+<script src="questions-party.js?v=r2"></script>
 <script>
 (() => {
   "use strict";
@@ -529,8 +529,8 @@ td.best::after { content: " \2605"; color: var(--teal); }
       mode,
       screen: "players",
       players: DEFAULT_PLAYERS.slice(),
-      teamCount: 4,
-      teams: TEAM_DEFAULTS.slice(0, 4).map(t => ({ name: t.name, color: t.color, members: [] })),
+      teamCount: 3,
+      teams: TEAM_DEFAULTS.slice(0, 3).map(t => ({ name: t.name, color: t.color, members: [] })),
       selected: { jeopardy: true, literal: true, thisthat: true, dialogue: true, tunes: true },
       scores: {},
       done: {},          // qid -> team index awarded (-1 = nobody)
